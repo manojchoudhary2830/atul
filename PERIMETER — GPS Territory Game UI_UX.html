@@ -1,0 +1,2411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>PERIMETER — GPS Territory Game · UI/UX System</title>
+<meta name="description" content="Design system and clickable prototype for a GPS-based multiplayer territory game.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..125,400..800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   PERIMETER — design tokens
+   ============================================================ */
+:root{
+  /* page chrome (adapts to viewer theme) */
+  --page-bg:#EFF1F2; --page-card:#FFFFFF; --page-fg:#0C1014;
+  --page-muted:#5A666E; --page-line:#DCE1E4; --page-line-2:#C6CED3;
+
+  /* ---- product tokens (always dark: this is a dark-first product) ---- */
+  --void:#06080A;
+  --surface:#0D1116;
+  --surface-2:#131A20;
+  --surface-3:#1C252D;
+  --surface-4:#26323B;
+  --line:#212C34;
+  --line-2:#32424D;
+
+  --primary:#B9FF3C;
+  --primary-dim:#8FCC22;
+  --primary-ink:#0A1400;
+  --primary-wash:rgba(185,255,60,.12);
+
+  --secondary:#3BE0FF;
+  --success:#3DD68C;
+  --warning:#FFC048;
+  --danger:#FF5A5A;
+
+  --text:#F1F5F4;
+  --text-2:#9FADB6;
+  --text-3:#84929B;
+
+  /* ---- territory palette: deliberately disjoint from UI accents ---- */
+  --t-you:#2DE1FF;
+  --t-rose:#FF3D77;
+  --t-amber:#FFB01F;
+  --t-violet:#A16BFF;
+  --t-ember:#FF6A3D;
+  --t-neutral:#6B7785;
+  --t-route:#B9FF3C;
+
+  /* map substrate */
+  --map-bg:#080C10;
+  --map-block:#10171D;
+  --map-block-2:#141D24;
+  --map-road:#1B262E;
+  --map-road-hi:#27353F;
+  --map-water:#0B1C28;
+  --map-park:#0D1A14;
+
+  /* spacing — 8px system */
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:24px; --s6:32px;
+  --s7:40px; --s8:48px; --s9:64px;
+
+  /* radius */
+  --r-xs:6px; --r-sm:10px; --r-md:14px; --r-lg:20px; --r-xl:28px; --r-full:999px;
+
+  /* elevation */
+  --e1:0 1px 2px rgba(0,0,0,.4);
+  --e2:0 4px 16px rgba(0,0,0,.45);
+  --e3:0 12px 40px rgba(0,0,0,.55);
+  --e-sheet:0 -12px 48px rgba(0,0,0,.6);
+  --glow:0 0 0 1px rgba(185,255,60,.35), 0 8px 28px rgba(185,255,60,.18);
+
+  /* motion */
+  --d-micro:180ms; --d-ui:320ms; --d-major:760ms;
+  --ease:cubic-bezier(.2,.8,.2,1);
+  --ease-out:cubic-bezier(.16,1,.3,1);
+
+  /* type */
+  --font-display:"Archivo","Archivo Expanded",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-ui:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --page-bg:#070A0C; --page-card:#0F1418; --page-fg:#EDF1F3;
+    --page-muted:#8C99A2; --page-line:#1C242A; --page-line-2:#2A343B;
+  }
+}
+:root[data-theme="dark"]{
+  --page-bg:#070A0C; --page-card:#0F1418; --page-fg:#EDF1F3;
+  --page-muted:#8C99A2; --page-line:#1C242A; --page-line-2:#2A343B;
+}
+
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--page-bg); color:var(--page-fg);
+  font-family:var(--font-ui); font-size:15px; line-height:1.55;
+  -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+  min-height:100vh;
+}
+img{max-width:100%}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+:focus-visible{outline:2px solid var(--primary); outline-offset:2px; border-radius:4px}
+.sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+/* number rendering: expanded + tabular is the product's signature */
+.num{font-family:var(--font-display); font-variation-settings:"wdth" 112,"wght" 700;
+  font-feature-settings:"tnum" 1,"zero" 1; letter-spacing:-.02em; line-height:1}
+
+/* ============================================================
+   PAGE SHELL
+   ============================================================ */
+.shell{max-width:1560px;margin:0 auto;padding:0 clamp(12px,3vw,32px) 64px}
+
+.topbar{
+  position:sticky;top:0;z-index:60;
+  display:flex;align-items:center;gap:var(--s4);flex-wrap:wrap;
+  padding:14px 0; margin-bottom:var(--s5);
+  background:color-mix(in srgb,var(--page-bg) 88%,transparent);
+  backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--page-line);
+}
+.brand{display:flex;align-items:center;gap:10px;margin-right:auto}
+.brand svg{display:block}
+.brand b{font-family:var(--font-display);font-variation-settings:"wdth" 118,"wght" 800;
+  font-size:17px;letter-spacing:.14em;text-transform:uppercase}
+.brand span{color:var(--page-muted);font-size:12.5px;display:block;letter-spacing:.01em}
+
+.seg{display:flex;gap:2px;padding:3px;border:1px solid var(--page-line);
+  background:var(--page-card);border-radius:var(--r-full)}
+.seg button{padding:7px 15px;border-radius:var(--r-full);font-size:13px;font-weight:500;
+  color:var(--page-muted);transition:background var(--d-micro) var(--ease),color var(--d-micro)}
+.seg button[aria-selected="true"]{background:var(--page-fg);color:var(--page-bg);font-weight:600}
+.seg button:hover:not([aria-selected="true"]){color:var(--page-fg)}
+
+.tog{display:flex;gap:6px;flex-wrap:wrap}
+.tog button{display:flex;align-items:center;gap:7px;padding:7px 12px;font-size:12.5px;
+  border:1px solid var(--page-line);background:var(--page-card);border-radius:var(--r-full);
+  color:var(--page-muted);transition:border-color var(--d-micro),color var(--d-micro)}
+.tog button[aria-pressed="true"]{color:var(--page-fg);border-color:var(--page-line-2)}
+.tog i{width:9px;height:9px;border-radius:50%;background:var(--page-line-2);transition:background var(--d-micro)}
+.tog button[aria-pressed="true"] i{background:var(--primary-dim)}
+
+/* workspace */
+.work{display:grid;grid-template-columns:238px minmax(0,1fr);gap:clamp(16px,2.4vw,36px);align-items:start}
+.work.wide{grid-template-columns:minmax(0,1fr)}
+
+.nav-h{font-size:11px;letter-spacing:.11em;text-transform:uppercase;color:var(--page-muted);
+  font-weight:600;margin:20px 0 7px;padding-left:10px}
+.nav-h:first-child{margin-top:0}
+.navlist{display:flex;flex-direction:column;gap:1px;list-style:none;margin:0;padding:0}
+.navlist button{display:flex;align-items:center;gap:9px;width:100%;text-align:left;
+  padding:8px 10px;border-radius:9px;font-size:13.5px;color:var(--page-muted);
+  transition:background var(--d-micro),color var(--d-micro)}
+.navlist button:hover{background:color-mix(in srgb,var(--page-fg) 6%,transparent);color:var(--page-fg)}
+.navlist button[aria-current="true"]{background:var(--page-fg);color:var(--page-bg);font-weight:600}
+.navlist .dot{width:5px;height:5px;border-radius:50%;background:currentColor;opacity:.4;flex:none}
+.navlist button[aria-current="true"] .dot{opacity:1;background:var(--primary-dim)}
+
+.side{position:sticky;top:86px;max-height:calc(100vh - 110px);overflow-y:auto;
+  padding-right:6px;scrollbar-width:thin}
+
+/* stage */
+.stage{display:flex;flex-direction:column;align-items:center;gap:var(--s4);min-height:60vh}
+.stage-head{width:100%;display:flex;align-items:flex-end;gap:var(--s4);flex-wrap:wrap;
+  padding-bottom:var(--s3);border-bottom:1px solid var(--page-line)}
+.stage-head h2{margin:0;font-family:var(--font-display);font-variation-settings:"wdth" 112,"wght" 700;
+  font-size:clamp(20px,2.4vw,26px);letter-spacing:-.015em;line-height:1.1}
+.stage-head p{margin:4px 0 0;color:var(--page-muted);font-size:13.5px;max-width:62ch}
+.stage-head .spacer{margin-left:auto}
+.stepper{display:flex;gap:6px;align-items:center}
+.stepper button{width:34px;height:34px;display:grid;place-items:center;border-radius:50%;
+  border:1px solid var(--page-line);background:var(--page-card);color:var(--page-muted)}
+.stepper button:hover{color:var(--page-fg);border-color:var(--page-line-2)}
+.stepper span{font-size:12.5px;color:var(--page-muted);min-width:56px;text-align:center}
+
+/* ============================================================
+   DEVICE FRAMES
+   ============================================================ */
+.devwrap{display:flex;justify-content:center;width:100%}
+.device{
+  position:relative;width:390px;height:844px;flex:none;
+  border-radius:44px;background:#000;padding:11px;
+  box-shadow:0 0 0 1.5px #2b343a, 0 40px 90px rgba(0,0,0,.45), 0 2px 0 rgba(255,255,255,.05) inset;
+  transform-origin:top center;
+}
+.device::after{content:"";position:absolute;left:50%;transform:translateX(-50%);
+  top:11px;width:112px;height:28px;border-radius:0 0 18px 18px;background:#000;z-index:8;pointer-events:none}
+.screen{position:relative;width:100%;height:100%;border-radius:34px;overflow:hidden;
+  background:var(--void);color:var(--text);display:flex;flex-direction:column;isolation:isolate}
+.statusbar{position:absolute;inset:0 0 auto 0;height:44px;z-index:7;display:flex;align-items:center;
+  justify-content:space-between;padding:0 26px;font-size:12.5px;font-weight:600;color:var(--text);
+  pointer-events:none}
+.statusbar .sb-r{display:flex;gap:5px;align-items:center;opacity:.9}
+.homebar{position:absolute;bottom:7px;left:50%;transform:translateX(-50%);width:134px;height:5px;
+  border-radius:3px;background:rgba(255,255,255,.35);z-index:9;pointer-events:none}
+
+.browser{width:1440px;height:900px;flex:none;border-radius:14px;overflow:hidden;background:var(--void);
+  box-shadow:0 0 0 1px #2b343a,0 40px 90px rgba(0,0,0,.4);transform-origin:top left}
+.bchrome{height:40px;background:#121A20;border-bottom:1px solid var(--line);display:flex;
+  align-items:center;gap:8px;padding:0 14px}
+.bchrome i{width:11px;height:11px;border-radius:50%;background:#33414C;display:block}
+.burl{margin-left:12px;flex:1;max-width:460px;height:24px;border-radius:var(--r-full);background:#0A0F13;
+  border:1px solid var(--line);display:flex;align-items:center;padding:0 12px;font-size:11.5px;color:var(--text-3)}
+.bbody{height:860px;display:flex;overflow:hidden}
+
+/* ============================================================
+   PRODUCT UI PRIMITIVES
+   ============================================================ */
+.app{font-family:var(--font-ui);color:var(--text)}
+.scroll{flex:1;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+.pad{padding:0 20px}
+.stack{display:flex;flex-direction:column}
+.row{display:flex;align-items:center}
+.gap2{gap:8px}.gap3{gap:12px}.gap4{gap:16px}
+.grow{flex:1}
+
+/* type scale */
+.t-display{font-family:var(--font-display);font-variation-settings:"wdth" 118,"wght" 800;
+  font-size:40px;line-height:1.02;letter-spacing:-.03em}
+.t-h1{font-family:var(--font-display);font-variation-settings:"wdth" 110,"wght" 700;
+  font-size:26px;line-height:1.14;letter-spacing:-.02em}
+.t-h2{font-family:var(--font-display);font-variation-settings:"wdth" 106,"wght" 700;
+  font-size:19px;line-height:1.2;letter-spacing:-.01em}
+.t-h3{font-family:var(--font-display);font-variation-settings:"wdth" 104,"wght" 600;
+  font-size:15.5px;line-height:1.3}
+.t-body{font-size:14.5px;line-height:1.5}
+.t-small{font-size:13px;line-height:1.5;color:var(--text-2)}
+.t-cap{font-size:11.5px;line-height:1.4;color:var(--text-3)}
+.t-label{font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:var(--text-3)}
+.t-metric{font-family:var(--font-display);font-variation-settings:"wdth" 120,"wght" 700;
+  font-feature-settings:"tnum" 1;font-size:30px;line-height:1;letter-spacing:-.025em}
+.muted{color:var(--text-2)} .faint{color:var(--text-3)}
+
+/* buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;
+  height:50px;padding:0 22px;border-radius:var(--r-md);font-size:15px;font-weight:600;
+  transition:transform var(--d-micro) var(--ease),background var(--d-micro),box-shadow var(--d-micro),opacity var(--d-micro);
+  white-space:nowrap;position:relative}
+.btn:active{transform:scale(.975)}
+.btn-primary{background:var(--primary);color:var(--primary-ink);box-shadow:0 6px 22px rgba(185,255,60,.18)}
+.btn-primary:hover{background:#C7FF5E}
+.btn-secondary{background:var(--surface-3);color:var(--text);box-shadow:inset 0 0 0 1px var(--line-2)}
+.btn-secondary:hover{background:var(--surface-4)}
+.btn-ghost{color:var(--text-2)}
+.btn-ghost:hover{color:var(--text);background:rgba(255,255,255,.05)}
+.btn-danger{background:rgba(255,90,90,.14);color:#FF8A8A;box-shadow:inset 0 0 0 1px rgba(255,90,90,.3)}
+.btn-danger:hover{background:rgba(255,90,90,.2)}
+.btn-block{width:100%}
+.btn-sm{height:38px;padding:0 15px;font-size:13.5px;border-radius:var(--r-sm)}
+.btn-lg{height:58px;font-size:16px;border-radius:var(--r-lg)}
+.btn[disabled],.btn[aria-disabled="true"]{opacity:.38;pointer-events:none;box-shadow:none}
+.btn-loading{color:transparent!important}
+.btn-loading::after{content:"";position:absolute;width:19px;height:19px;border-radius:50%;
+  border:2px solid rgba(10,20,0,.28);border-top-color:var(--primary-ink);animation:spin .7s linear infinite}
+.btn-secondary.btn-loading::after{border-color:rgba(255,255,255,.2);border-top-color:var(--text)}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.iconbtn{width:42px;height:42px;display:grid;place-items:center;border-radius:var(--r-sm);
+  background:var(--surface-2);box-shadow:inset 0 0 0 1px var(--line);color:var(--text-2);
+  transition:color var(--d-micro),background var(--d-micro)}
+.iconbtn:hover{color:var(--text);background:var(--surface-3)}
+.iconbtn.round{border-radius:50%}
+
+/* cards */
+.card{background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-lg);padding:var(--s4)}
+.card-flat{background:var(--surface);border:1px solid var(--line)}
+.card-press{transition:transform var(--d-micro) var(--ease),border-color var(--d-micro);cursor:pointer;text-align:left;width:100%}
+.card-press:hover{border-color:var(--line-2)}
+.card-press:active{transform:scale(.985)}
+
+/* chips + status */
+.chip{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border-radius:var(--r-full);
+  font-size:11.5px;font-weight:600;letter-spacing:.02em;background:var(--surface-3);color:var(--text-2)}
+.chip .bead{width:7px;height:7px;border-radius:50%;background:currentColor;flex:none}
+.chip-live{background:rgba(255,90,90,.15);color:#FF7A7A}
+.chip-live .bead{background:#FF5A5A;animation:pulse 1.6s var(--ease) infinite}
+.chip-rec{background:rgba(185,255,60,.14);color:var(--primary)}
+.chip-cap{background:rgba(255,176,31,.14);color:var(--t-amber)}
+.chip-attack{background:rgba(255,61,119,.15);color:var(--t-rose)}
+.chip-prot{background:rgba(61,214,140,.14);color:var(--success)}
+.chip-off{background:var(--surface-3);color:var(--text-3)}
+.chip-sync{background:rgba(59,224,255,.13);color:var(--secondary)}
+.chip-you{background:rgba(45,225,255,.14);color:var(--t-you)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+
+.badge{display:inline-grid;place-items:center;min-width:19px;height:19px;padding:0 5px;border-radius:var(--r-full);
+  background:var(--danger);color:#fff;font-size:10.5px;font-weight:700}
+
+.avatar{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;flex:none;
+  font-family:var(--font-display);font-variation-settings:"wdth" 108,"wght" 700;font-size:14px;
+  color:#07090B;letter-spacing:.02em}
+.avatar.sm{width:30px;height:30px;font-size:11.5px}
+.avatar.lg{width:72px;height:72px;font-size:24px}
+.avatar.ring{box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--t-you)}
+
+/* progress */
+.bar{height:8px;border-radius:var(--r-full);background:var(--surface-4);overflow:hidden;position:relative}
+.bar>i{display:block;height:100%;border-radius:var(--r-full);background:var(--primary);
+  transition:width var(--d-ui) var(--ease);position:relative}
+.bar.amber>i{background:var(--t-amber)}
+.bar.rose>i{background:var(--t-rose)}
+.bar.you>i{background:var(--t-you)}
+.bar-seg{display:flex;gap:3px;height:9px}
+.bar-seg i{flex:1;border-radius:2px;background:var(--surface-4);transition:background var(--d-micro)}
+.bar-seg i.on{background:var(--t-amber)}
+.ring-wrap{position:relative;display:grid;place-items:center}
+.ring-wrap svg{transform:rotate(-90deg)}
+.ring-wrap .ring-val{position:absolute;text-align:center}
+
+/* form */
+.field{display:flex;flex-direction:column;gap:7px}
+.field label{font-size:12.5px;color:var(--text-2);font-weight:500}
+.input{height:50px;border-radius:var(--r-md);background:var(--surface-2);border:1px solid var(--line);
+  padding:0 14px;color:var(--text);font-size:15px;font-family:inherit;width:100%;
+  transition:border-color var(--d-micro),background var(--d-micro)}
+.input::placeholder{color:var(--text-3)}
+.input:focus{outline:none;border-color:var(--primary);background:var(--surface-3)}
+.switch{width:46px;height:28px;border-radius:var(--r-full);background:var(--surface-4);position:relative;
+  flex:none;transition:background var(--d-micro) var(--ease)}
+.switch i{position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#7C8A94;
+  transition:transform var(--d-micro) var(--ease),background var(--d-micro)}
+.switch[aria-checked="true"]{background:var(--primary)}
+.switch[aria-checked="true"] i{transform:translateX(18px);background:var(--primary-ink)}
+.radio{width:22px;height:22px;border-radius:50%;box-shadow:inset 0 0 0 1.5px var(--line-2);flex:none;
+  display:grid;place-items:center;transition:box-shadow var(--d-micro)}
+.radio[aria-checked="true"]{box-shadow:inset 0 0 0 7px var(--primary)}
+
+/* list rows */
+.rowitem{display:flex;align-items:center;gap:12px;padding:13px 0;width:100%;text-align:left;
+  border-bottom:1px solid var(--line)}
+.rowitem:last-child{border-bottom:0}
+
+/* tabs */
+.tabs{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.tabs::-webkit-scrollbar{display:none}
+.tabs button{padding:8px 14px;border-radius:var(--r-full);font-size:13px;font-weight:500;color:var(--text-3);
+  white-space:nowrap;background:var(--surface-2);box-shadow:inset 0 0 0 1px var(--line);
+  transition:color var(--d-micro),background var(--d-micro)}
+.tabs button[aria-selected="true"]{background:var(--text);color:var(--void);font-weight:600;box-shadow:none}
+.tabs button:hover:not([aria-selected="true"]){color:var(--text-2)}
+
+/* skeletons */
+.sk{background:linear-gradient(90deg,var(--surface-2) 25%,var(--surface-3) 37%,var(--surface-2) 63%);
+  background-size:400% 100%;animation:shimmer 1.5s ease-in-out infinite;border-radius:var(--r-sm)}
+@keyframes shimmer{0%{background-position:100% 0}100%{background-position:-100% 0}}
+
+/* bottom nav */
+.bnav{position:relative;z-index:6;height:76px;flex:none;margin-top:auto;display:grid;grid-template-columns:repeat(5,1fr);
+  align-items:center;background:color-mix(in srgb,var(--surface) 92%,transparent);
+  backdrop-filter:blur(20px);border-top:1px solid var(--line);padding-bottom:14px}
+.bnav button{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:10px;font-weight:600;
+  color:var(--text-3);letter-spacing:.02em;transition:color var(--d-micro)}
+.bnav button[aria-current="true"]{color:var(--primary)}
+.bnav button:hover{color:var(--text-2)}
+.bnav .fab{width:56px;height:56px;border-radius:19px;background:var(--primary);color:var(--primary-ink);
+  display:grid;place-items:center;margin-top:-20px;box-shadow:0 8px 26px rgba(185,255,60,.3);
+  transition:transform var(--d-micro) var(--ease)}
+.bnav .fab:hover{transform:translateY(-2px)}
+.bnav .fab:active{transform:scale(.94)}
+
+/* ============================================================
+   MAP
+   ============================================================ */
+.map{position:absolute;inset:0;background:var(--map-bg);overflow:hidden}
+.map svg{width:100%;height:100%;display:block}
+.terr{transition:fill-opacity var(--d-ui) var(--ease),stroke-opacity var(--d-ui)}
+.terr-fill{fill-opacity:.17}
+.terr-stroke{fill:none;stroke-width:2;stroke-linejoin:round}
+.terr-dim .terr-fill{fill-opacity:.07}
+.terr-dim .terr-stroke{stroke-opacity:.35}
+.terr-hot .terr-fill{fill-opacity:.3}
+.terr-attack .terr-stroke{stroke-dasharray:7 5;animation:march 1.1s linear infinite}
+@keyframes march{to{stroke-dashoffset:-24}}
+.terr-label{font-family:var(--font-display);font-variation-settings:"wdth" 108,"wght" 700;
+  font-size:11px;letter-spacing:.06em;text-transform:uppercase;pointer-events:none}
+.terr-sub{font-family:var(--font-display);font-variation-settings:"wdth" 112,"wght" 600;
+  font-size:9.5px;fill:rgba(255,255,255,.55);letter-spacing:.02em}
+.route{fill:none;stroke:var(--t-route);stroke-width:3.5;stroke-linecap:round;stroke-linejoin:round;
+  filter:drop-shadow(0 0 6px rgba(185,255,60,.5))}
+.route-ghost{fill:none;stroke:rgba(255,255,255,.14);stroke-width:2;stroke-dasharray:3 6;stroke-linecap:round}
+.me-halo{fill:rgba(45,225,255,.16);transform-box:fill-box;transform-origin:center;animation:halo 2.4s var(--ease) infinite}
+@keyframes halo{0%{transform:scale(.6);opacity:.9}70%{transform:scale(1.5);opacity:0}100%{opacity:0}}
+.capture-ping{fill:none;stroke:var(--t-amber);stroke-width:2;transform-box:fill-box;transform-origin:center;
+  animation:ping 1.9s var(--ease) infinite}
+@keyframes ping{0%{transform:scale(var(--s0,14));opacity:.8}100%{transform:scale(var(--s1,48));opacity:0}}
+.grow-in{animation:growIn var(--d-major) var(--ease-out) both}
+@keyframes growIn{from{transform:scale(.82);opacity:0}to{transform:scale(1);opacity:1}}
+
+.map-controls{position:absolute;right:14px;display:flex;flex-direction:column;gap:8px;z-index:4}
+.mc{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;
+  background:color-mix(in srgb,var(--surface-2) 88%,transparent);backdrop-filter:blur(12px);
+  box-shadow:inset 0 0 0 1px var(--line),var(--e1);color:var(--text-2);
+  transition:color var(--d-micro),background var(--d-micro)}
+.mc:hover{color:var(--text);background:var(--surface-3)}
+.mc[aria-pressed="true"]{color:var(--primary);box-shadow:inset 0 0 0 1px rgba(185,255,60,.4)}
+
+.legend{position:absolute;left:14px;z-index:4;border-radius:var(--r-md);
+  background:color-mix(in srgb,var(--surface-2) 90%,transparent);backdrop-filter:blur(12px);
+  box-shadow:inset 0 0 0 1px var(--line);overflow:hidden;max-width:172px}
+.legend>button{display:flex;align-items:center;gap:8px;width:100%;padding:9px 11px;font-size:11.5px;
+  font-weight:600;color:var(--text-2)}
+.legend ul{list-style:none;margin:0;padding:0 11px 10px;display:flex;flex-direction:column;gap:6px}
+.legend li{display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--text-2)}
+.legend .sw{width:12px;height:12px;border-radius:3px;flex:none}
+.legend[data-open="false"] ul{display:none}
+
+/* bottom sheet */
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:12;background:var(--surface);
+  border-radius:var(--r-xl) var(--r-xl) 0 0;box-shadow:var(--e-sheet);
+  border-top:1px solid var(--line);padding:10px 20px 22px;
+  animation:sheetUp var(--d-ui) var(--ease-out) both;max-height:76%;overflow-y:auto;scrollbar-width:none}
+.sheet::-webkit-scrollbar{display:none}
+@keyframes sheetUp{from{transform:translateY(102%)}to{transform:translateY(0)}}
+.grabber{width:38px;height:4px;border-radius:3px;background:var(--surface-4);margin:0 auto 14px}
+.scrim{position:absolute;inset:0;z-index:11;background:rgba(3,5,7,.6);backdrop-filter:blur(2px);
+  animation:fade var(--d-ui) var(--ease) both}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+.modal{position:absolute;left:20px;right:20px;top:50%;transform:translateY(-50%);z-index:12;
+  background:var(--surface);border:1px solid var(--line-2);border-radius:var(--r-xl);padding:22px;
+  box-shadow:var(--e3);animation:popIn var(--d-ui) var(--ease-out) both}
+@keyframes popIn{from{opacity:0;transform:translateY(-46%) scale(.94)}to{opacity:1;transform:translateY(-50%) scale(1)}}
+
+/* toast */
+.toast{position:absolute;left:16px;right:16px;top:56px;z-index:14;display:flex;align-items:center;gap:11px;
+  padding:12px 14px;border-radius:var(--r-md);background:var(--surface-3);
+  box-shadow:var(--e2),inset 0 0 0 1px var(--line-2);animation:toastIn var(--d-ui) var(--ease-out) both}
+@keyframes toastIn{from{opacity:0;transform:translateY(-14px)}to{opacity:1;transform:none}}
+
+/* screen-specific */
+.hero-metric{display:flex;align-items:baseline;gap:8px}
+.hero-metric .u{font-size:17px;color:var(--text-2);font-weight:600;font-family:var(--font-display)}
+.delta{display:inline-flex;align-items:center;gap:4px;font-size:12.5px;font-weight:600;color:var(--success)}
+.delta.down{color:var(--danger)}
+.statgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stat{background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-md);padding:13px 14px}
+.minimap{border-radius:var(--r-md);overflow:hidden;position:relative;background:var(--map-bg)}
+.onb-dots{display:flex;gap:6px}
+.onb-dots i{width:6px;height:6px;border-radius:3px;background:var(--surface-4);transition:all var(--d-ui) var(--ease)}
+.onb-dots i.on{width:22px;background:var(--primary)}
+.lb-row{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:var(--r-md)}
+.lb-row.me{background:var(--surface-2);box-shadow:inset 0 0 0 1px rgba(45,225,255,.32)}
+.rank{width:26px;font-family:var(--font-display);font-variation-settings:"wdth" 112,"wght" 700;
+  font-size:14px;color:var(--text-3);text-align:center;flex:none}
+.rank.top{color:var(--primary)}
+.ach{display:flex;gap:13px;align-items:flex-start;padding:14px;border-radius:var(--r-md);
+  background:var(--surface-2);border:1px solid var(--line)}
+.ach.locked{opacity:.45}
+.ach .medal{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;flex:none;
+  background:var(--surface-3);box-shadow:inset 0 0 0 1px var(--line-2)}
+.ach:not(.locked) .medal{background:var(--primary-wash);box-shadow:inset 0 0 0 1px rgba(185,255,60,.35);color:var(--primary)}
+.timeline{position:relative;padding-left:24px}
+.timeline::before{content:"";position:absolute;left:5px;top:6px;bottom:6px;width:1px;background:var(--line)}
+.tl-item{position:relative;padding-bottom:20px}
+.tl-item::before{content:"";position:absolute;left:-23px;top:5px;width:11px;height:11px;border-radius:50%;
+  background:var(--surface);box-shadow:inset 0 0 0 2px var(--line-2)}
+.tl-item.hi::before{box-shadow:inset 0 0 0 3px var(--primary)}
+.empty{display:flex;flex-direction:column;align-items:center;text-align:center;gap:14px;padding:44px 26px}
+.empty .art{width:104px;height:104px;opacity:.9}
+.bigmetric{display:flex;flex-direction:column;gap:3px;align-items:center}
+
+/* run HUD */
+.hud{position:absolute;left:0;right:0;bottom:0;z-index:6;padding:18px 20px 26px;
+  background:linear-gradient(to top,var(--void) 46%,rgba(6,8,10,.92) 74%,transparent);}
+.hud-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
+.hud-metrics .m{display:flex;flex-direction:column;gap:5px}
+.capbar{border-radius:var(--r-md);background:color-mix(in srgb,var(--surface-2) 92%,transparent);
+  backdrop-filter:blur(12px);box-shadow:inset 0 0 0 1px rgba(255,176,31,.3);padding:13px 14px;margin-bottom:14px}
+.tick{animation:tick var(--d-micro) var(--ease)}
+@keyframes tick{50%{transform:scale(1.06)}}
+
+/* ============================================================
+   DESKTOP APP
+   ============================================================ */
+.dsb{width:236px;flex:none;border-right:1px solid var(--line);background:var(--surface);
+  display:flex;flex-direction:column;padding:20px 14px}
+.dsb-item{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:var(--r-sm);
+  font-size:14px;color:var(--text-3);width:100%;text-align:left;transition:color var(--d-micro),background var(--d-micro)}
+.dsb-item:hover{color:var(--text-2);background:var(--surface-2)}
+.dsb-item[aria-current="true"]{background:var(--surface-3);color:var(--text);font-weight:600}
+.dmain{flex:1;min-width:0;display:flex;flex-direction:column;background:var(--void)}
+.dtop{height:64px;flex:none;border-bottom:1px solid var(--line);display:flex;align-items:center;
+  gap:14px;padding:0 26px}
+.dbody{flex:1;overflow-y:auto;padding:24px 26px 40px}
+.dgrid{display:grid;gap:16px}
+.panel{position:absolute;background:color-mix(in srgb,var(--surface) 94%,transparent);backdrop-filter:blur(16px);
+  border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--e3);z-index:5}
+
+/* ============================================================
+   DESIGN SYSTEM DOC
+   ============================================================ */
+.ds{width:100%;max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:54px}
+.ds section{scroll-margin-top:100px}
+.ds h3{font-family:var(--font-display);font-variation-settings:"wdth" 110,"wght" 700;
+  font-size:19px;margin:0 0 4px;letter-spacing:-.01em}
+.ds .lead{color:var(--page-muted);font-size:13.5px;margin:0 0 20px;max-width:70ch}
+.swatches{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:12px}
+.sw-card{border-radius:var(--r-md);overflow:hidden;border:1px solid var(--page-line);background:var(--page-card)}
+.sw-chip{height:74px;display:flex;align-items:flex-end;padding:8px;font-size:10.5px;font-weight:600}
+.sw-meta{padding:9px 11px}
+.sw-meta b{display:block;font-size:12.5px;font-weight:600}
+.sw-meta code{font-size:11px;color:var(--page-muted);font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.demo{background:var(--void);border:1px solid var(--page-line);border-radius:var(--r-lg);padding:24px;
+  color:var(--text);font-family:var(--font-ui)}
+.demo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:18px}
+.spec{font-size:11.5px;color:var(--text-3);margin-top:8px;font-family:ui-monospace,Menlo,monospace}
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{text-align:left;font-weight:600;color:var(--page-muted);font-size:11.5px;letter-spacing:.06em;
+  text-transform:uppercase;padding:0 12px 9px;border-bottom:1px solid var(--page-line)}
+.tbl td{padding:10px 12px;border-bottom:1px solid var(--page-line);vertical-align:top}
+.tbl code{font-family:ui-monospace,Menlo,monospace;font-size:12px;color:var(--page-fg)}
+.note{border-left:2px solid var(--primary-dim);padding:2px 0 2px 14px;color:var(--page-muted);font-size:13.5px;max-width:74ch}
+
+/* accessibility modes */
+body[data-cvd="true"] .terr-fill{fill-opacity:.1}
+body[data-cvd="true"] .terr-pattern{display:block}
+.terr-pattern{display:none}
+body[data-motion="off"] *,body[data-motion="off"] *::before,body[data-motion="off"] *::after{
+  animation-duration:1ms!important;animation-iteration-count:1!important;transition-duration:1ms!important}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:1ms!important;animation-iteration-count:1!important;transition-duration:1ms!important}
+}
+
+/* responsive */
+@media (max-width:1180px){ .work{grid-template-columns:200px minmax(0,1fr)} }
+@media (max-width:900px){
+  .work{grid-template-columns:minmax(0,1fr)}
+  .side{position:static;max-height:none;display:flex;gap:6px;overflow-x:auto;padding-bottom:8px;
+    border-bottom:1px solid var(--page-line);margin-bottom:8px}
+  .side .nav-h{display:none}
+  .side .navlist{flex-direction:row;gap:6px}
+  .side .navlist button{white-space:nowrap;border:1px solid var(--page-line);border-radius:var(--r-full);padding:7px 13px}
+  .side .navlist .dot{display:none}
+}
+@media (max-width:620px){
+  .topbar{gap:10px;padding:11px 0}
+  .brand span{display:none}
+  .seg button{padding:6px 11px;font-size:12px}
+  .stage-head h2{font-size:19px}
+}
+</style>
+</head>
+<body data-motion="on" data-cvd="false">
+<div class="shell">
+  <header class="topbar">
+    <div class="brand">
+      <svg width="30" height="30" viewBox="0 0 30 30" fill="none" aria-hidden="true">
+        <path d="M15 2.6 26.4 10.2 22 24.6 8 24.6 3.6 10.2Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" opacity=".45"/>
+        <path d="M15 2.6 26.4 10.2 22 24.6" stroke="#B9FF3C" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="15" cy="15" r="3.4" fill="#2DE1FF"/>
+      </svg>
+      <div>
+        <b>Perimeter</b>
+        <span>Every move redraws the map</span>
+      </div>
+    </div>
+    <div class="seg" role="tablist" aria-label="Surface">
+      <button role="tab" aria-selected="true" data-surface="mobile">Mobile</button>
+      <button role="tab" aria-selected="false" data-surface="desktop">Desktop</button>
+      <button role="tab" aria-selected="false" data-surface="system">Design system</button>
+    </div>
+    <div class="tog">
+      <button id="tg-motion" aria-pressed="true"><i></i>Motion</button>
+      <button id="tg-cvd" aria-pressed="false"><i></i>Colour-blind safe</button>
+    </div>
+  </header>
+  <main id="work" class="work">
+    <nav class="side" id="side" aria-label="Screens"></nav>
+    <div class="stage" id="stage"></div>
+  </main>
+</div>
+<script>
+/* ============================================================
+   PERIMETER prototype — mock data, icons, map engine
+   No backend, no geospatial logic. Everything below is fixture data.
+   ============================================================ */
+"use strict";
+
+/* ---------- icon set (24px stroke) ---------- */
+const P = {
+  home:"M4 10.6 12 4l8 6.6V20a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z",
+  map:"M9 4 3 6.5v13L9 17l6 3 6-2.5v-13L15 7zM9 4v13M15 7v13",
+  plus:"M12 5v14M5 12h14",
+  trophy:"M7 4h10v5a5 5 0 0 1-10 0zM7 6H4v1a3 3 0 0 0 3 3M17 6h3v1a3 3 0 0 1-3 3M9 20h6M12 14v6",
+  user:"M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8M5 20c0-3.3 3.1-5 7-5s7 1.7 7 5",
+  run:"M14 4.5a1.6 1.6 0 1 0 0-.1M8 21l2.6-5.2L8.4 13 7 17M10.6 15.8 9 11.4l4-2.4 2.6 2.6 3 .9M13 9l-4 2M15.6 11.6 18 19",
+  walk:"M13 4.4a1.5 1.5 0 1 0 0-.1M11 21l1.4-5.4L10 13l.8-4.4 3.4 1.2 1.6 3.4 2.4 1M11.8 8.6 9 10.6 7.6 14M12.4 15.6 15 21",
+  ride:"M6.5 18a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7m11 0a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7M9 7h3l3.5 7.5M12 7l-4 7.5M15 4h2.5",
+  bell:"M6 9a6 6 0 1 1 12 0c0 4 1.4 5.4 2 6H4c.6-.6 2-2 2-6M10 19a2 2 0 0 0 4 0",
+  chevR:"m9 5 7 7-7 7", chevL:"m15 5-7 7 7 7", chevD:"m5 9 7 7 7-7", chevU:"m19 15-7-7-7 7",
+  x:"M6 6l12 12M18 6 6 18",
+  check:"m4.5 12.5 5 5 10-11",
+  lock:"M7 11V8a5 5 0 0 1 10 0v3M5.5 11h13v9h-13z",
+  target:"M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18m0-4.5a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9M12 12h.01",
+  layers:"m12 3 9 5-9 5-9-5zM3 13l9 5 9-5M3 17.5l9 5 9-5",
+  compass:"M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18M15.5 8.5 13.8 13.8 8.5 15.5l1.7-5.3z",
+  locate:"M12 20a8 8 0 1 0 0-16 8 8 0 0 0 0 16M12 2v2M12 20v2M2 12h2M20 12h2M12 13.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3",
+  zin:"M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14M20 20l-4-4M8.5 11h5M11 8.5v5",
+  zout:"M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14M20 20l-4-4M8.5 11h5",
+  search:"M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14M20 20l-4-4",
+  pause:"M9 5v14M15 5v14",
+  flag:"M6 21V4h12l-2.5 4L18 12H6",
+  settings:"M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 7.5 19.4l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.6 1.6 0 0 0 3.6 14H3a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 4.6 7.5l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.6 1.6 0 0 0 10 3.6V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 2.5 1.5l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1A1.6 1.6 0 0 0 20.4 10H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1",
+  shield:"M12 3 5 6v6c0 4.2 3 7.4 7 9 4-1.6 7-4.8 7-9V6z",
+  swords:"M4 4h3l9.5 9.5M20 4h-3L7.5 13.5M4 20l4.5-4.5M20 20l-4.5-4.5M14 17l3 3M10 17l-3 3",
+  clock:"M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18M12 7v5.2l3.2 2",
+  ruler:"M4.5 15.5 15.5 4.5l4 4-11 11zM8 12l1.8 1.8M11 9l1.8 1.8M14 6l1.8 1.8",
+  flame:"M12 21c3.6 0 6-2.4 6-5.6 0-4.3-4-5.9-3.2-10.4C12 6 9 8.4 9 12c-1 0-1.8-.8-2-2-1.2 1.4-1 2.7-1 3.4C6 18.6 8.4 21 12 21",
+  trend:"m4 16 5-5 3.5 3.5L20 7M15 7h5v5",
+  wifioff:"M2 3l19 19M8.8 15.5a4.5 4.5 0 0 1 5-.6M5.5 12a9 9 0 0 1 4-2.3M2.5 8.6A14 14 0 0 1 7 6.2m5.8-1.1a14 14 0 0 1 8.7 3.5M12 20h.01",
+  alert:"M12 8.5v5M12 17h.01M10.3 4.2 2.6 17.4A2 2 0 0 0 4.3 20.4h15.4a2 2 0 0 0 1.7-3L13.7 4.2a2 2 0 0 0-3.4 0",
+  refresh:"M20 11A8 8 0 0 0 6.3 6.3L4 8.5M4 13a8 8 0 0 0 13.7 4.7L20 15.5M4 4v4.5h4.5M20 20v-4.5h-4.5",
+  eye:"M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6",
+  chart:"M4 20V9M10 20V4M16 20v-7M22 20H2",
+  grid:"M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z",
+  arrowR:"M4 12h15M13 6l6 6-6 6",
+  arrowL:"M20 12H5M11 6l-6 6 6 6",
+  star:"m12 3.5 2.6 5.5 5.9.8-4.3 4.2 1 5.9-5.2-2.8-5.2 2.8 1-5.9L3.5 9.8l5.9-.8z",
+  medal:"M12 15a5 5 0 1 0 0-10 5 5 0 0 0 0 10M8.5 13.5 7 21l5-2.4L17 21l-1.5-7.5",
+  share:"M12 3v12M8 7l4-4 4 4M5 14v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5",
+  info:"M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18M12 11v5M12 8h.01",
+  logout:"M9 21H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3M15 17l5-5-5-5M20 12H9",
+  globe:"M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18M3.5 9h17M3.5 15h17M12 3c-2.2 2.4-3.3 5.4-3.3 9s1.1 6.6 3.3 9c2.2-2.4 3.3-5.4 3.3-9S14.2 5.4 12 3",
+  bolt:"M13 3 5 13.5h6L10.5 21 19 10.5h-6z",
+  cal:"M4.5 6.5h15v14h-15zM8 3v5M16 3v5M4.5 11h15",
+  play:"M7 4.5 19 12 7 19.5z"
+};
+function ic(n,s,sw){s=s||20;return `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${sw||1.7}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${P[n]||''}"/></svg>`}
+function icf(n,s){s=s||20;return `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="${P[n]||''}"/></svg>`}
+
+/* ---------- mock data ---------- */
+const ME = {name:"Atul", handle:"@atul_runner", initials:"AT", color:"#2DE1FF",
+  area:12.84, week:38.6, acts:14, caps:7, level:11, xp:1840, xpNext:2400, streak:6, rank:4, dist:328};
+
+const HUES = {you:"#2DE1FF", rose:"#FF3D77", amber:"#FFB01F", violet:"#A16BFF", ember:"#FF6A3D", neutral:"#6B7785"};
+
+const TERR = [
+ {id:"riverside", name:"Riverside Loop", owner:"you", handle:"@atul_runner", hue:"you", area:12.84,
+  pts:[[210,640],[300,588],[402,600],[456,666],[440,760],[358,818],[252,796],[192,720]],
+  state:"own", age:"42 days ago", week:"+4.2%", pat:0},
+ {id:"midtown", name:"Midtown Runners", owner:"Kiran Mehta", handle:"@kiran_m", hue:"rose", area:8.42,
+  pts:[[540,330],[660,300],[760,345],[790,440],[735,530],[610,545],[530,470]],
+  state:"target", age:"24 days ago", week:"+1.1%", pat:1},
+ {id:"northgate", name:"Northgate", owner:"Devansh Rao", handle:"@devansh", hue:"amber", area:6.10,
+  pts:[[318,140],[440,118],[522,182],[510,286],[398,322],[304,262]],
+  state:"rival", age:"61 days ago", week:"-0.4%", pat:2},
+ {id:"quarry", name:"Old Quarry", owner:"Meera Sen", handle:"@meera.runs", hue:"violet", area:4.86,
+  pts:[[820,628],[930,604],[1012,666],[1000,772],[904,818],[814,750]],
+  state:"attacked", age:"18 days ago", week:"+6.8%", pat:3},
+ {id:"harbour", name:"Harbour Line", owner:"Tomas Reyes", handle:"@tomas_r", hue:"ember", area:9.35,
+  pts:[[96,398],[212,366],[282,430],[250,532],[138,548],[76,478]],
+  state:"rival", age:"88 days ago", week:"+2.0%", pat:4},
+ {id:"foundry", name:"Foundry Flats", owner:null, handle:null, hue:"neutral", area:3.20,
+  pts:[[676,690],[792,700],[832,792],[758,872],[658,842],[634,760]],
+  state:"neutral", age:"unclaimed", week:"—", pat:5},
+ {id:"signal", name:"Signal Hill", owner:"you", handle:"@atul_runner", hue:"you", area:5.06,
+  pts:[[898,228],[1010,214],[1082,292],[1048,392],[938,406],[878,320]],
+  state:"own-new", age:"2 days ago", week:"new", pat:0},
+ {id:"ashgrove", name:"Ashgrove", owner:"Sana Iqbal", handle:"@sana.rides", hue:"rose", area:7.12,
+  pts:[[430,890],[556,862],[636,918],[604,1012],[482,1030],[406,958]],
+  state:"protected", age:"33 days ago", week:"+0.9%", pat:1}
+];
+const T = id => TERR.find(t=>t.id===id);
+
+const ROUTE = [[318,752],[300,700],[292,650],[318,612],[356,588],[402,566],[440,540],[472,512],[506,486],
+  [544,458],[580,432],[618,412],[658,404],[698,412],[730,436],[748,470],[750,506],[730,534],[698,548],
+  [660,552],[620,546],[586,528],[556,504],[528,478]];
+const CAP_T = [0.44, 0.94];
+
+const NEARBY = [
+ {n:"Kiran M", i:"KM", x:706,y:372, hue:"rose", d:"420 m", act:"Running"},
+ {n:"Devansh", i:"DR", x:452,y:318, hue:"amber", d:"1.2 km", act:"Riding"},
+ {n:"Meera S", i:"MS", x:868,y:702, hue:"violet", d:"2.8 km", act:"Walking"},
+ {n:"Tomas R", i:"TR", x:184,y:452, hue:"ember", d:"3.1 km", act:"Running"},
+ {n:"Sana I", i:"SI", x:512,y:936, hue:"rose", d:"4.4 km", act:"Idle"}
+];
+
+const LEADERS = [
+ {r:1,n:"Kiran Mehta",h:"@kiran_m",i:"KM",hue:"rose",area:42.8,dist:412,caps:23},
+ {r:2,n:"Tomas Reyes",h:"@tomas_r",i:"TR",hue:"ember",area:38.1,dist:390,caps:19},
+ {r:3,n:"Meera Sen",h:"@meera.runs",i:"MS",hue:"violet",area:29.4,dist:344,caps:15},
+ {r:4,n:"Atul",h:"@atul_runner",i:"AT",hue:"you",area:17.90,dist:328,caps:7,me:true},
+ {r:5,n:"Devansh Rao",h:"@devansh",i:"DR",hue:"amber",area:16.2,dist:298,caps:11},
+ {r:6,n:"Sana Iqbal",h:"@sana.rides",i:"SI",hue:"rose",area:14.7,dist:512,caps:9},
+ {r:7,n:"Lena Vogt",h:"@lena.v",i:"LV",hue:"violet",area:12.1,dist:255,caps:6},
+ {r:8,n:"Joon Park",h:"@joonp",i:"JP",hue:"amber",area:10.4,dist:240,caps:5}
+];
+
+const NOTIFS = [
+ {t:"attack", ttl:"Riverside Loop is under attack", body:"@kiran_m crossed your southern border 4 minutes ago.", time:"4m", unread:true},
+ {t:"capture", ttl:"You captured Signal Hill", body:"+5.06 km² added to your territory.", time:"2d", unread:true},
+ {t:"grow", ttl:"Riverside Loop expanded", body:"Your morning run added 1.8 km².", time:"2d", unread:false},
+ {t:"ach", ttl:"Achievement unlocked — Conqueror", body:"You captured your first rival territory.", time:"2d", unread:false},
+ {t:"defend", ttl:"Capture attempt defended", body:"@devansh left Riverside Loop before reaching 50%.", time:"5d", unread:false}
+];
+
+const ACTS = [
+ {type:"run", ttl:"Morning run", d:"6.4 km", t:"42:10", p:"6:35 /km", gain:"+1.8 km²", when:"Today, 06:42"},
+ {type:"ride", ttl:"River loop ride", d:"18.2 km", t:"51:04", p:"21.4 km/h", gain:"+2.4 km²", when:"Yesterday, 17:20"},
+ {type:"walk", ttl:"Evening walk", d:"3.1 km", t:"38:55", p:"12:32 /km", gain:"+0.4 km²", when:"Tue, 19:05"},
+ {type:"run", ttl:"Signal Hill capture", d:"8.72 km", t:"52:18", p:"6:00 /km", gain:"+5.06 km²", when:"Mon, 07:15"}
+];
+
+const ACHS = [
+ {n:"First Territory",d:"Create your first territory.",on:true,ic:"flag"},
+ {n:"Explorer",d:"Travel 50 km.",on:true,ic:"compass"},
+ {n:"Conqueror",d:"Capture your first territory.",on:true,ic:"swords"},
+ {n:"Expansionist",d:"Reach 25 km² of territory.",on:false,ic:"grid",prog:[17.9,25],unit:"km²"},
+ {n:"Marathoner",d:"Complete 100 km of activities.",on:false,ic:"run",prog:[38.6,100],unit:"km"},
+ {n:"Untouchable",d:"Defend 10 capture attempts.",on:false,ic:"shield",prog:[3,10],unit:""}
+];
+
+const HISTORY = [
+ {d:"Today",e:"Territory expanded",s:"+2.4 km² from your morning run",hi:true},
+ {d:"Yesterday",e:"Capture attempt defended",s:"@devansh withdrew at 31%"},
+ {d:"Sep 12",e:"Border redrawn",s:"Overlap with Harbour Line resolved, −0.3 km²"},
+ {d:"Sep 08",e:"Territory expanded",s:"+1.1 km² from an evening walk"},
+ {d:"Aug 27",e:"Territory created",s:"First loop closed around the river path"}
+];
+
+/* ---------- deterministic city substrate ---------- */
+function rng(seed){let s=seed>>>0;return()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296}}
+const CITY = (()=>{
+  const r = rng(20260918), blocks=[], roads=[];
+  for(let i=0;i<=17;i++){
+    const x=i*75+6; roads.push(`M${x} -40 L${x+ (r()*22-11)} 1240`);
+    const y=i*75+10; roads.push(`M-40 ${y} L1240 ${y+(r()*22-11)}`);
+  }
+  for(let gx=0;gx<17;gx++) for(let gy=0;gy<17;gy++){
+    const n = 1+Math.floor(r()*3);
+    for(let k=0;k<n;k++){
+      const w=16+r()*30, h=14+r()*28;
+      const x=gx*75+12+r()*(52-w), y=gy*75+16+r()*(50-h);
+      blocks.push({x:+x.toFixed(1),y:+y.toFixed(1),w:+w.toFixed(1),h:+h.toFixed(1),t:r()>.72?1:0});
+    }
+  }
+  return {blocks,roads};
+})();
+
+const ARTERIALS = ["M-40 470 C 240 440, 460 520, 700 480 S 1040 420, 1240 470",
+  "M180 -40 C 200 260, 300 420, 380 640 S 440 1000, 420 1240",
+  "M-40 820 C 260 780, 520 860, 780 800 S 1080 740, 1240 790"];
+const RIVER = "M-40 1128 C 250 1052, 420 990, 620 906 S 968 764, 1240 640";
+const PARKS = [
+  [[556,604],[672,592],[700,660],[640,704],[556,684]],
+  [[236,286],[352,272],[380,346],[300,396],[228,356]],
+  [[860,470],[956,452],[992,516],[918,556],[856,528]]
+];
+
+/* ---------- geometry helpers ---------- */
+function ptsAttr(a){return a.map(p=>p[0].toFixed(1)+","+p[1].toFixed(1)).join(" ")}
+function centroid(a){let x=0,y=0;a.forEach(p=>{x+=p[0];y+=p[1]});return[x/a.length,y/a.length]}
+const RLEN=(()=>{let tot=0,cum=[0];for(let i=1;i<ROUTE.length;i++){tot+=Math.hypot(ROUTE[i][0]-ROUTE[i-1][0],ROUTE[i][1]-ROUTE[i-1][1]);cum.push(tot)}return{tot,cum}})();
+function routeUpTo(t){
+  const target=RLEN.tot*Math.max(0,Math.min(1,t)), out=[ROUTE[0]];
+  for(let i=1;i<ROUTE.length;i++){
+    if(RLEN.cum[i]<=target){out.push(ROUTE[i]);continue}
+    const seg=RLEN.cum[i]-RLEN.cum[i-1], f=seg?(target-RLEN.cum[i-1])/seg:0;
+    out.push([ROUTE[i-1][0]+(ROUTE[i][0]-ROUTE[i-1][0])*f, ROUTE[i-1][1]+(ROUTE[i][1]-ROUTE[i-1][1])*f]);
+    break;
+  }
+  return out;
+}
+function routePos(t){const p=routeUpTo(t);return p[p.length-1]}
+function capProgress(t){return Math.max(0,Math.min(1,(t-CAP_T[0])/(CAP_T[1]-CAP_T[0])))}
+
+/* ---------- map renderer ---------- */
+let MAPID=0;
+const VIEWS = {
+  city:[60,150,1080,1080], home:[150,520,520,520], close:[400,300,520,520],
+  run:[230,330,700,700], mid:[470,260,420,420], own:[140,540,400,400],
+  signal:[830,170,320,320], wide:[0,60,1200,1120]
+};
+function mapSVG(o){
+  o=o||{}; const id="m"+(++MAPID), v=o.view||VIEWS.city;
+  const px=o.px||366, u=v[2]/px;               /* world units per displayed CSS pixel */
+  const showT = o.terr===undefined? TERR.map(t=>t.id) : o.terr;
+  const labels = o.labels!==false, dim = o.dim||[];
+  const fs=(11*u).toFixed(1), fs2=(9.2*u).toFixed(1), pu=(7*u).toFixed(2);
+  const NS='vector-effect="non-scaling-stroke"';
+  let s=`<svg viewBox="${v.join(' ')}" preserveAspectRatio="xMidYMid slice" role="img" aria-label="${o.alt||'Map of nearby territories'}">`;
+  s+=`<defs>`;
+  ["0","45","90","135","dot","cross"].forEach((a,i)=>{
+    const ang = (a==="dot"||a==="cross")?0:a;
+    s+=`<pattern id="${id}p${i}" width="${pu}" height="${pu}" patternUnits="userSpaceOnUse" patternTransform="rotate(${ang})">`;
+    if(a==="dot") s+=`<circle cx="${pu/2}" cy="${pu/2}" r="${(1.5*u).toFixed(2)}" fill="#fff"/>`;
+    else if(a==="cross") s+=`<path d="M0 0H${pu}M0 0V${pu}" stroke="#fff" stroke-width="1.4" ${NS}/>`;
+    else s+=`<path d="M0 0V${pu}" stroke="#fff" stroke-width="2" ${NS}/>`;
+    s+=`</pattern>`;
+  });
+  s+=`<clipPath id="${id}c"><rect x="${v[0]}" y="${v[1]}" width="${v[2]}" height="${v[3]}"/></clipPath></defs>`;
+  s+=`<g clip-path="url(#${id}c)">`;
+  s+=`<rect x="${v[0]-20}" y="${v[1]-20}" width="${v[2]+40}" height="${v[3]+40}" fill="var(--map-bg)"/>`;
+  s+=`<path d="${RIVER}" stroke="var(--map-water)" stroke-width="54" fill="none" stroke-linecap="round"/>`;
+  PARKS.forEach(p=>{s+=`<polygon points="${ptsAttr(p)}" fill="var(--map-park)"/>`});
+  CITY.blocks.forEach(b=>{
+    if(b.x+b.w<v[0]-30||b.x>v[0]+v[2]+30||b.y+b.h<v[1]-30||b.y>v[1]+v[3]+30) return;
+    s+=`<rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="1.6" fill="${b.t?'var(--map-block-2)':'var(--map-block)'}"/>`;
+  });
+  s+=`<g stroke="var(--map-road)" stroke-width="1" fill="none" ${NS}>`;
+  CITY.roads.forEach(d=>{s+=`<path d="${d}"/>`}); s+=`</g>`;
+  s+=`<g stroke="var(--map-road-hi)" stroke-width="2.6" fill="none" stroke-linecap="round" ${NS}>`;
+  ARTERIALS.forEach(d=>{s+=`<path d="${d}"/>`}); s+=`</g>`;
+  TERR.forEach(t=>{
+    if(showT.indexOf(t.id)<0) return;
+    const hue=(o.recolor&&o.recolor[t.id])?HUES[o.recolor[t.id]]:HUES[t.hue], cls=["terr"];
+    if(dim.indexOf(t.id)>=0) cls.push("terr-dim");
+    if(o.hot===t.id) cls.push("terr-hot");
+    if(t.state==="attacked"||o.attack===t.id) cls.push("terr-attack");
+    s+=`<g class="${cls.join(' ')}">`;
+    s+=`<polygon class="terr-fill" points="${ptsAttr(t.pts)}" style="fill:${hue}"/>`;
+    s+=`<polygon class="terr-pattern" points="${ptsAttr(t.pts)}" fill="url(#${id}p${t.pat})" opacity=".4"/>`;
+    s+=`<polygon class="terr-stroke" points="${ptsAttr(t.pts)}" style="stroke:${hue}" ${NS}/>`;
+    if(labels && (t.area>4 || v[2]<600)){
+      const c=centroid(t.pts);
+      s+=`<text class="terr-label" x="${c[0].toFixed(0)}" y="${(c[1]-2).toFixed(0)}" text-anchor="middle" style="fill:${hue};font-size:${fs}px">${t.name.toUpperCase()}</text>`;
+      s+=`<text class="terr-sub" x="${c[0].toFixed(0)}" y="${(+c[1]+ +fs+3*u).toFixed(0)}" text-anchor="middle" style="font-size:${fs2}px">${t.area.toFixed(2)} km²</text>`;
+    }
+    s+=`</g>`;
+  });
+  if(o.ping){const c=centroid(T(o.ping).pts);
+    s+=`<circle class="capture-ping" cx="${c[0].toFixed(0)}" cy="${c[1].toFixed(0)}" r="1" ${NS} style="--s0:${(14*u).toFixed(1)};--s1:${(48*u).toFixed(1)}"/>`}
+  if(o.ghost) s+=`<path class="route-ghost" d="M${ptsAttr(ROUTE).replace(/ /g,' L')}" ${NS}/>`;
+  if(o.route!==undefined && o.route!==null){
+    const pts=routeUpTo(o.route);
+    if(o.preview && pts.length>3)
+      s+=`<polygon class="route-prev" points="${ptsAttr(pts)}" fill="var(--t-you)" fill-opacity=".14" stroke="var(--t-you)" stroke-width="1.4" stroke-dasharray="5 4" ${NS}/>`;
+    s+=`<path class="route" d="M${ptsAttr(pts).replace(/ /g,' L')}" ${NS}/>`;
+  }
+  if(o.players){
+    NEARBY.forEach(p=>{
+      s+=`<g><circle cx="${p.x}" cy="${p.y}" r="${(8*u).toFixed(1)}" fill="var(--surface)" stroke="${HUES[p.hue]}" stroke-width="1.8" ${NS}/>`;
+      s+=`<circle cx="${p.x}" cy="${p.y}" r="${(3.2*u).toFixed(1)}" fill="${HUES[p.hue]}"/></g>`;
+    });
+  }
+  if(o.me!==false){
+    const m = (o.route!==undefined&&o.route!==null) ? routePos(o.route) : (o.mePos||[330,742]);
+    const r0=8*u;
+    s+=`<g class="me-marker" transform="translate(${m[0].toFixed(1)},${m[1].toFixed(1)})">`+
+       `<circle class="me-halo" r="${(r0*2.2).toFixed(1)}"/>`+
+       `<circle r="${r0.toFixed(1)}" fill="#07090B" stroke="var(--t-you)" stroke-width="2.4" ${NS}/>`+
+       `<circle r="${(r0*.44).toFixed(1)}" fill="var(--t-you)"/></g>`;
+  }
+  s+=`</g></svg>`;
+  return s;
+}
+
+/* ============================================================
+   APP STATE + SHARED CHROME
+   ============================================================ */
+const S = {
+  surface:"mobile", screen:"map", desk:"dashboard", sys:"foundations",
+  onb:0, mapMode:"normal", sheet:null, modal:null, toast:null,
+  lbScope:"Nearby", lbTime:"Weekly", lbCat:"Territory",
+  terrTab:"All", actType:"run", legend:true, loading:false, busy:false,
+  run:{t:0, playing:false, elapsed:0, raf:null, done:false}
+};
+
+function av(i,hue,cls){return `<div class="avatar ${cls||''}" style="background:${HUES[hue]||hue}">${i}</div>`}
+function statusbar(){return `<div class="statusbar"><span>9:41</span><span class="sb-r">
+  <svg width="17" height="11" viewBox="0 0 17 11" fill="currentColor" aria-hidden="true"><rect x="0" y="7" width="3" height="4" rx="1"/><rect x="4.5" y="5" width="3" height="6" rx="1"/><rect x="9" y="2.5" width="3" height="8.5" rx="1"/><rect x="13.5" y="0" width="3" height="11" rx="1"/></svg>
+  <svg width="24" height="11" viewBox="0 0 24 11" fill="none" aria-hidden="true"><rect x=".6" y=".6" width="19" height="9.8" rx="3" stroke="currentColor" opacity=".45"/><rect x="2.4" y="2.4" width="13" height="6.2" rx="1.6" fill="currentColor"/><path d="M21.4 4v3" stroke="currentColor" opacity=".45" stroke-width="1.6" stroke-linecap="round"/></svg>
+</span></div>`}
+function homebar(){return `<div class="homebar"></div>`}
+
+const NAVITEMS=[["home","Home","home"],["map","Map","map"],["FAB","Start","plus"],["leaderboard","Ranks","trophy"],["profile","Profile","user"]];
+function bnav(active){
+  return `<nav class="bnav" aria-label="Primary">`+NAVITEMS.map(([id,label,icon])=>{
+    if(id==="FAB") return `<button class="fab" data-go="activity-select" aria-label="Start an activity">${ic(icon,26,2.2)}</button>`;
+    return `<button data-go="${id}" ${active===id?'aria-current="true"':''}>${ic(icon,21)}<span>${label}</span></button>`;
+  }).join("")+`</nav>`;
+}
+function topbar(title,opts){
+  opts=opts||{};
+  return `<header class="row gap3" style="padding:52px 20px 12px;flex:none">
+    ${opts.back?`<button class="iconbtn round" data-go="${opts.back}" aria-label="Back">${ic("chevL",20)}</button>`:""}
+    <h1 class="t-h2 grow" style="margin:0">${title}</h1>${opts.right||""}
+  </header>`;
+}
+function metric(label,value,unit){
+  return `<div class="stack" style="gap:6px"><div class="t-label">${label}</div>
+  <div class="hero-metric"><span class="t-metric">${value}</span>${unit?`<span class="u">${unit}</span>`:""}</div></div>`;
+}
+function statcard(label,value,unit,delta){
+  return `<div class="stat"><div class="t-label" style="margin-bottom:8px">${label}</div>
+  <div class="hero-metric"><span class="num" style="font-size:22px">${value}</span>${unit?`<span class="u" style="font-size:13px">${unit}</span>`:""}</div>
+  ${delta?`<div class="delta ${delta[0]==="-"?"down":""}" style="margin-top:6px">${ic("trend",13,2)}${delta}</div>`:""}</div>`;
+}
+function ownerChip(t){
+  if(t.owner==="you") return `<span class="chip chip-you"><i class="bead"></i>Yours</span>`;
+  if(!t.owner) return `<span class="chip"><i class="bead"></i>Unclaimed</span>`;
+  return `<span class="chip" style="color:${HUES[t.hue]};background:${HUES[t.hue]}22"><i class="bead"></i>${t.handle}</span>`;
+}
+function stateChip(st){
+  const m={own:["chip-you","Yours"],"own-new":["chip-you","Captured 2d ago"],rival:["chip","Rival"],
+    target:["chip-cap","Capture available"],attacked:["chip-attack","Under attack"],
+    protected:["chip-prot","Protected"],neutral:["chip","Unclaimed"]};
+  const [c,l]=m[st]||["chip",st];
+  return `<span class="chip ${c}"><i class="bead"></i>${l}</span>`;
+}
+
+/* ============================================================
+   MOBILE SCREENS
+   ============================================================ */
+const M = {};
+
+M.splash = ()=>`
+<div class="screen app" data-go="onboarding" style="cursor:pointer">${statusbar()}
+  <div class="grow" style="display:grid;place-items:center;position:relative">
+    <div class="map" style="opacity:.32">${mapSVG({view:VIEWS.close,labels:false,me:false,players:false})}</div>
+    <div style="position:absolute;inset:0;background:radial-gradient(60% 46% at 50% 46%,transparent,var(--void) 78%)"></div>
+    <div class="stack" style="align-items:center;gap:22px;position:relative">
+      <svg width="96" height="96" viewBox="0 0 96 96" fill="none" aria-hidden="true">
+        <polygon points="48,9 87,32 74,78 22,78 9,32" stroke="rgba(255,255,255,.14)" stroke-width="2" stroke-linejoin="round"/>
+        <polygon points="48,9 87,32 74,78 22,78 9,32" stroke="#B9FF3C" stroke-width="3" stroke-linejoin="round" fill="rgba(185,255,60,.07)"
+          stroke-dasharray="230" stroke-dashoffset="230" style="animation:draw 1.5s var(--ease-out) .25s forwards"/>
+        <circle cx="48" cy="48" r="8" fill="#2DE1FF" style="animation:growIn .6s var(--ease-out) 1.4s both"/>
+      </svg>
+      <div class="stack" style="align-items:center;gap:7px">
+        <div class="t-h1" style="letter-spacing:.2em;font-size:23px">PERIMETER</div>
+        <div class="t-small faint">Every move redraws the map</div>
+      </div>
+    </div>
+    <div style="position:absolute;bottom:88px;left:0;right:0;display:grid;place-items:center;gap:12px">
+      <div class="bar" style="width:112px;height:3px"><i style="width:40%;animation:load 1.9s var(--ease) infinite"></i></div>
+      <div class="t-cap">Finding your position</div>
+    </div>
+  </div>${homebar()}
+</div>
+<style>@keyframes draw{to{stroke-dashoffset:0}}@keyframes load{0%{width:10%}60%{width:86%}100%{width:96%}}</style>`;
+
+const ONB = [
+ {k:"Move", h:"Move through the real&nbsp;world.", b:"Run, walk or ride. Perimeter records the line you travel, street by street.",
+  map:{view:VIEWS.run,terr:[],route:.62,ghost:true,players:false}},
+ {k:"Claim", h:"Turn your movement into territory.", b:"Close a loop and the ground inside it becomes yours — measured in real square kilometres.",
+  map:{view:VIEWS.run,terr:[],route:.9,ghost:false,preview:true,players:false}},
+ {k:"Compete", h:"Challenge the players around&nbsp;you.", b:"Your city is already divided. See who holds the blocks you run past every day.",
+  map:{view:VIEWS.city,players:true,me:false}},
+ {k:"Conquer", h:"Explore. Capture. Expand.", b:"Spend enough distance inside a rival's border and the territory changes hands.",
+  map:{view:VIEWS.mid,terr:["midtown","signal"],recolor:{midtown:"you"},me:false,ping:"midtown"}}
+];
+M.onboarding = ()=>{const o=ONB[S.onb];return `
+<div class="screen app">${statusbar()}
+  <div style="height:56%;position:relative;flex:none">
+    <div class="map">${mapSVG(o.map)}</div>
+    <div style="position:absolute;inset:0;background:linear-gradient(to top,var(--void) 4%,transparent 52%)"></div>
+    <button class="btn btn-ghost btn-sm" data-go="login" style="position:absolute;top:48px;right:12px">Skip</button>
+  </div>
+  <div class="grow pad stack" style="gap:14px;justify-content:space-between;padding-bottom:34px">
+    <div class="stack" style="gap:12px">
+      <div class="onb-dots">${ONB.map((_,i)=>`<i class="${i===S.onb?'on':''}"></i>`).join("")}</div>
+      <h2 class="t-h1" style="margin:0;max-width:17ch">${o.h}</h2>
+      <p class="t-body muted" style="margin:0;max-width:34ch">${o.b}</p>
+    </div>
+    <div class="row gap3">
+      ${S.onb>0?`<button class="btn btn-secondary" data-act="onb-prev" aria-label="Previous">${ic("chevL",20)}</button>`:""}
+      <button class="btn btn-primary grow" data-act="onb-next">${S.onb===ONB.length-1?"Get started":"Continue"}</button>
+    </div>
+  </div>${homebar()}
+</div>`};
+
+function authScreen(mode){
+  const reg = mode==="register";
+  return `<div class="screen app">${statusbar()}
+  <div class="scroll pad" style="padding-top:78px">
+    <svg width="44" height="44" viewBox="0 0 30 30" fill="none" aria-hidden="true" style="margin-bottom:26px">
+      <path d="M15 2.6 26.4 10.2 22 24.6 8 24.6 3.6 10.2Z" stroke="rgba(255,255,255,.2)" stroke-width="1.6" stroke-linejoin="round"/>
+      <path d="M15 2.6 26.4 10.2 22 24.6" stroke="#B9FF3C" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="15" cy="15" r="3.4" fill="#2DE1FF"/></svg>
+    <h1 class="t-h1" style="margin:0 0 6px">${reg?"Create your account":"Welcome back"}</h1>
+    <p class="t-small" style="margin:0 0 26px">${reg?"Pick a name your rivals will see on the map.":"Your territory is where you left it."}</p>
+    <div class="stack" style="gap:14px">
+      ${reg?`<div class="field"><label for="u">Username</label><input class="input" id="u" value="atul_runner" autocomplete="off"></div>`:""}
+      <div class="field"><label for="e">Email</label><input class="input" id="e" type="email" placeholder="you@example.com" value="${reg?"":"atul@example.com"}"></div>
+      <div class="field"><label for="p">Password</label><input class="input" id="p" type="password" value="••••••••••"></div>
+      ${reg?"":`<button class="btn btn-ghost btn-sm" style="align-self:flex-start;padding:0">Forgot password?</button>`}
+      <button class="btn btn-primary btn-block btn-lg ${S.busy?"btn-loading":""}" data-act="auth-submit">${reg?"Create account":"Continue"}</button>
+    </div>
+    <div class="row gap3" style="margin:22px 0"><div class="grow" style="height:1px;background:var(--line)"></div>
+      <span class="t-cap">or</span><div class="grow" style="height:1px;background:var(--line)"></div></div>
+    <div class="stack" style="gap:10px">
+      <button class="btn btn-secondary btn-block">Continue with Apple</button>
+      <button class="btn btn-secondary btn-block">Continue with Google</button>
+    </div>
+    <p class="t-cap" style="text-align:center;margin:26px 0 12px;line-height:1.6">By continuing you agree to the<br><u>Terms of Service</u> and <u>Privacy Policy</u>.</p>
+    <p class="t-small" style="text-align:center;margin:0 0 30px">${reg?"Already playing?":"New here?"}
+      <button class="btn btn-ghost btn-sm" data-go="${reg?"login":"register"}" style="padding:0 4px;height:auto;color:var(--primary)">${reg?"Sign in":"Create an account"}</button></p>
+  </div>${homebar()}</div>`;
+}
+M.login = ()=>authScreen("login");
+M.register = ()=>authScreen("register");
+
+M.home = ()=>`
+<div class="screen app">${statusbar()}
+  <div class="scroll" style="padding-top:52px">
+    <div class="pad row gap3" style="margin-bottom:20px">
+      <div class="grow"><div class="t-small">Good morning</div><div class="t-h2">${ME.name}</div></div>
+      <button class="iconbtn round" data-go="notifications" aria-label="Notifications, 2 unread" style="position:relative">
+        ${ic("bell",20)}<span class="badge" style="position:absolute;top:-2px;right:-2px">2</span></button>
+      <button data-go="profile" aria-label="Your profile">${av(ME.initials,"you","ring")}</button>
+    </div>
+
+    <div class="pad"><button class="card card-press" data-go="territories" style="padding:0;overflow:hidden;border-radius:var(--r-xl)">
+      <div class="minimap" style="height:168px">${mapSVG({view:VIEWS.own,terr:["riverside","harbour","foundry"],labels:false,players:false})}
+        <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(13,17,22,.96) 12%,transparent 62%)"></div>
+      </div>
+      <div style="padding:0 18px 18px;margin-top:-58px;position:relative">
+        <div class="t-label" style="margin-bottom:7px">Your territory</div>
+        <div class="row gap3" style="align-items:flex-end">
+          <div class="hero-metric"><span class="t-metric" style="font-size:42px">17.90</span><span class="u">km²</span></div>
+          <div class="grow"></div>
+          <div class="stack" style="align-items:flex-end;gap:2px">
+            <div class="delta">${ic("trend",14,2)}+4.2%</div><div class="t-cap">this week</div></div>
+        </div>
+        <div class="row gap2" style="margin-top:12px">
+          <span class="chip chip-you"><i class="bead"></i>2 zones</span>
+          <span class="chip chip-attack"><i class="bead"></i>1 under attack</span>
+        </div>
+      </div></button></div>
+
+    <div class="pad" style="margin-top:14px">
+      <button class="btn btn-primary btn-block btn-lg" data-go="activity-select">${ic("plus",22,2.2)}Start activity</button>
+    </div>
+
+    <div class="pad" style="margin-top:22px">
+      <div class="row" style="margin-bottom:10px"><div class="t-h3 grow">Today</div>
+        <button class="btn btn-ghost btn-sm" data-go="history">History</button></div>
+      <div class="card row gap3">
+        <div class="iconbtn" style="background:var(--primary-wash);color:var(--primary);box-shadow:inset 0 0 0 1px rgba(185,255,60,.3)">${ic("run",22)}</div>
+        <div class="grow"><div class="t-h3">Morning run</div><div class="t-cap">06:42 · Riverside Loop</div></div>
+        <div class="stack" style="align-items:flex-end;gap:2px">
+          <div class="num" style="font-size:19px">6.4<span style="font-size:12px;color:var(--text-2)"> km</span></div>
+          <div class="t-cap">42:10</div></div>
+      </div>
+    </div>
+
+    <div class="pad" style="margin-top:22px">
+      <div class="t-h3" style="margin-bottom:10px">Around you</div>
+      <div class="stack" style="gap:8px">
+        <button class="card card-press row gap3" data-go="map">
+          <div class="iconbtn round" style="background:rgba(45,225,255,.12);color:var(--t-you)">${ic("user",20)}</div>
+          <div class="grow"><div class="t-body" style="font-weight:600">3 players nearby</div>
+            <div class="t-cap">Closest is @kiran_m, 420 m away</div></div>${ic("chevR",18)}</button>
+        <button class="card card-press row gap3" data-act="map-attack">
+          <div class="iconbtn round" style="background:rgba(255,61,119,.12);color:var(--t-rose)">${ic("swords",20)}</div>
+          <div class="grow"><div class="t-body" style="font-weight:600">2 territories under attack</div>
+            <div class="t-cap">Riverside Loop · Old Quarry</div></div>${ic("chevR",18)}</button>
+      </div>
+    </div>
+
+    <div class="pad" style="margin-top:22px;padding-bottom:26px">
+      <div class="t-h3" style="margin-bottom:10px">This week</div>
+      <div class="statgrid">
+        ${statcard("Distance","38.6","km","+12%")}
+        ${statcard("Territory","+1.42","km²","+4.2%")}
+        ${statcard("Activities","14","","+3")}
+        ${statcard("Captures","7","","+1")}
+      </div>
+    </div>
+  </div>
+  ${bnav("home")}${homebar()}
+</div>`;
+
+/* ---------- live map ---------- */
+const MAPMODES = {
+  normal:{label:"Nearby", opts:{view:VIEWS.city,players:true}},
+  own:{label:"Your territory", opts:{view:VIEWS.own,hot:"riverside",dim:["harbour","foundry","midtown","northgate","quarry","ashgrove","signal"],players:true}},
+  enemy:{label:"Rival territory", opts:{view:VIEWS.mid,hot:"midtown",dim:["signal","northgate","foundry"],players:true,me:false}},
+  opportunity:{label:"Capture available", opts:{view:VIEWS.mid,hot:"midtown",ping:"midtown",players:true,me:false}},
+  loading:{label:"Loading", opts:null}
+};
+function mapControls(bottom){
+  return `<div class="map-controls" style="top:92px">
+    <button class="mc" aria-label="Search the map">${ic("search",18)}</button>
+    <button class="mc" aria-label="Map layers">${ic("layers",18)}</button>
+    <button class="mc" aria-pressed="true" aria-label="Show nearby players">${ic("user",18)}</button>
+    <button class="mc" aria-label="Compass, north up">${ic("compass",18)}</button>
+  </div>
+  <div class="map-controls" style="bottom:${bottom}px">
+    <button class="mc" aria-label="Zoom in">${ic("zin",18)}</button>
+    <button class="mc" aria-label="Zoom out">${ic("zout",18)}</button>
+    <button class="mc" aria-label="Centre on my location" style="color:var(--t-you)">${ic("locate",18)}</button>
+  </div>`;
+}
+function legend(bottom){
+  const rows=[["var(--t-you)","Your territory"],["var(--t-rose)","Rival territory"],["var(--t-neutral)","Unclaimed"],
+    ["var(--primary)","Your route"],["var(--t-you)","You are here"],["var(--t-amber)","Capture zone"]];
+  return `<div class="legend" data-open="${S.legend}" style="bottom:${bottom}px">
+    <button data-act="legend">${ic(S.legend?"chevD":"chevU",14,2)}<span>Legend</span></button>
+    <ul>${rows.map(([c,l])=>`<li><span class="sw" style="background:${c}"></span>${l}</li>`).join("")}</ul></div>`;
+}
+M.map = ()=>{
+  const m = MAPMODES[S.mapMode], cbase = S.mapMode==="opportunity" ? 306 : 184;
+  if(S.mapMode==="loading") return `<div class="screen app">${statusbar()}
+    <div class="map" style="display:grid;place-items:center">
+      <div class="stack" style="align-items:center;gap:16px">
+        <svg width="72" height="72" viewBox="0 0 72 72" fill="none" aria-hidden="true">
+          <polygon points="36,8 64,25 54,60 18,60 8,25" stroke="var(--line-2)" stroke-width="2" stroke-linejoin="round"/>
+          <polygon points="36,8 64,25 54,60 18,60 8,25" stroke="var(--primary)" stroke-width="2.6" stroke-linejoin="round"
+            stroke-dasharray="40 160" style="animation:march2 1.6s linear infinite"/></svg>
+        <div class="t-small">Drawing your neighbourhood</div></div>
+    </div>
+    <div style="position:absolute;top:92px;left:14px;right:14px;display:flex;gap:8px">
+      <div class="sk" style="height:34px;width:96px;border-radius:999px"></div>
+      <div class="sk" style="height:34px;width:112px;border-radius:999px"></div></div>
+    ${bnav("map")}${homebar()}
+    <style>@keyframes march2{to{stroke-dashoffset:-200}}</style></div>`;
+  return `<div class="screen app">${statusbar()}
+  <div class="map">${mapSVG(Object.assign({alt:"City map with eight territories, your route and nearby players"},m.opts))}</div>
+  <div style="position:absolute;top:0;left:0;right:0;height:130px;background:linear-gradient(to bottom,rgba(6,8,10,.9),transparent);pointer-events:none"></div>
+  <div style="position:absolute;top:50px;left:14px;right:14px;z-index:4;display:flex;gap:8px;overflow-x:auto;scrollbar-width:none" class="tabs">
+    ${Object.entries(MAPMODES).filter(([k])=>k!=="loading").map(([k,v])=>
+      `<button data-act="mapmode:${k}" aria-selected="${S.mapMode===k}">${v.label}</button>`).join("")}
+  </div>
+  ${mapControls(cbase)}${legend(cbase)}
+  ${S.mapMode==="opportunity"?`
+  <div style="position:absolute;left:16px;right:16px;bottom:96px;z-index:5" class="grow-in">
+    <div class="card" style="background:color-mix(in srgb,var(--surface) 94%,transparent);backdrop-filter:blur(14px);border-color:rgba(255,176,31,.4)">
+      <div class="row gap3">
+        <div class="iconbtn" style="background:rgba(255,176,31,.14);color:var(--t-amber);box-shadow:none">${ic("swords",22)}</div>
+        <div class="grow"><div class="t-h3">Capture available</div>
+          <div class="t-cap">Midtown Runners · 8.42 km² · 180 m away</div></div>
+      </div>
+      <p class="t-small" style="margin:12px 0 14px">Start an activity and keep moving inside the border to take it.</p>
+      <div class="row gap2"><button class="btn btn-primary grow" data-go="pre-activity">Start capture run</button>
+        <button class="btn btn-secondary" data-act="sheet:midtown">Details</button></div>
+    </div></div>`:`
+  <button class="card card-press" data-act="sheet:${S.mapMode==="enemy"?"midtown":"riverside"}"
+    style="position:absolute;left:16px;right:16px;bottom:96px;z-index:5;background:color-mix(in srgb,var(--surface) 92%,transparent);backdrop-filter:blur(14px)">
+    <div class="row gap3">
+      <span style="width:10px;height:38px;border-radius:5px;background:${S.mapMode==="enemy"?HUES.rose:HUES.you};flex:none"></span>
+      <div class="grow"><div class="t-h3">${S.mapMode==="enemy"?"Midtown Runners":"Riverside Loop"}</div>
+        <div class="t-cap">${S.mapMode==="enemy"?"@kiran_m · 8.42 km²":"Yours · 12.84 km² · +4.2% this week"}</div></div>
+      ${ic("chevU",18)}</div></button>`}
+  ${S.sheet?terrSheet(S.sheet):""}
+  ${bnav("map")}${homebar()}</div>`;
+};
+
+function terrSheet(id){
+  const t=T(id), mine=t.owner==="you";
+  return `<div class="scrim" data-act="sheet:close"></div>
+  <div class="sheet" role="dialog" aria-label="${t.name} details">
+    <div class="grabber"></div>
+    <div class="row gap3" style="margin-bottom:16px">
+      <span style="width:12px;height:46px;border-radius:6px;background:${HUES[t.hue]};flex:none"></span>
+      <div class="grow"><h2 class="t-h1" style="margin:0;font-size:22px">${t.name}</h2>
+        <div class="row gap2" style="margin-top:7px">${ownerChip(t)}${stateChip(t.state)}</div></div>
+      <button class="iconbtn round" data-act="sheet:close" aria-label="Close">${ic("x",18)}</button>
+    </div>
+    <div class="statgrid" style="margin-bottom:16px">
+      ${statcard("Territory",t.area.toFixed(2),"km²",t.week!=="—"&&t.week!=="new"?t.week:null)}
+      ${statcard("Created",t.age.replace(" ago",""),"")}
+      ${statcard("Held by",t.owner?(mine?"You":t.owner.split(" ")[0]):"Nobody","")}
+      ${statcard("Borders","3","zones")}
+    </div>
+    <div class="minimap" style="height:132px;margin-bottom:16px">${mapSVG({view:fitView(t.pts),hot:t.id,labels:false,me:false,players:false})}</div>
+    ${mine?`<div class="stack" style="gap:9px">
+      <button class="btn btn-primary btn-block" data-go="territories">View stats</button>
+      <div class="row gap2"><button class="btn btn-secondary grow" data-go="history">Territory history</button>
+        <button class="btn btn-secondary grow">Rename</button></div></div>`:
+     `<div class="stack" style="gap:9px">
+      <button class="btn ${t.state==="target"?"btn-primary":"btn-secondary"} btn-block" ${t.state==="target"?'data-go="pre-activity"':'aria-disabled="true"'}>
+        ${t.state==="target"?"Start capture":"Capture locked — get closer"}</button>
+      <div class="row gap2"><button class="btn btn-secondary grow" data-go="player">View profile</button>
+        <button class="btn btn-secondary grow" data-go="history">History</button></div></div>`}
+  </div>`;
+}
+function fitView(pts){
+  let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;
+  pts.forEach(p=>{x0=Math.min(x0,p[0]);y0=Math.min(y0,p[1]);x1=Math.max(x1,p[0]);y1=Math.max(y1,p[1])});
+  const w=Math.max(x1-x0,y1-y0)*1.5, cx=(x0+x1)/2, cy=(y0+y1)/2;
+  return [cx-w/2,cy-w/2,w,w];
+}
+
+/* ---------- activity flow ---------- */
+const ACTKINDS=[{k:"run",n:"Run",d:"Fastest way to close a loop",ic:"run"},
+  {k:"walk",n:"Walk",d:"Slower pace, same territory rules",ic:"walk"},
+  {k:"ride",n:"Ride",d:"Cover more ground, wider borders",ic:"ride"}];
+M["activity-select"] = ()=>`
+<div class="screen app">${statusbar()}
+  ${topbar("Start activity",{back:"home",right:`<button class="iconbtn round" data-go="settings" aria-label="Activity settings">${ic("settings",19)}</button>`})}
+  <div class="scroll pad">
+    <p class="t-small" style="margin:0 0 18px">Pick how you're moving. Territory is measured the same way for all three.</p>
+    <div class="stack" style="gap:12px">
+      ${ACTKINDS.map(a=>`<button class="card card-press row gap4" data-act="pick:${a.k}"
+        style="padding:18px;${S.actType===a.k?"border-color:var(--primary);box-shadow:0 0 0 1px var(--primary),0 8px 30px rgba(185,255,60,.1)":""}">
+        <div class="iconbtn" style="width:54px;height:54px;border-radius:17px;background:${S.actType===a.k?"var(--primary)":"var(--surface-3)"};color:${S.actType===a.k?"var(--primary-ink)":"var(--text-2)"};box-shadow:none">${ic(a.ic,28,2)}</div>
+        <div class="grow"><div class="t-h2">${a.n}</div><div class="t-cap" style="margin-top:3px">${a.d}</div></div>
+        <span class="radio" aria-checked="${S.actType===a.k}" role="radio"></span></button>`).join("")}
+    </div>
+    <div class="card" style="margin-top:18px;background:var(--surface)">
+      <div class="row gap3"><span style="color:var(--t-amber)">${ic("swords",19)}</span>
+        <div class="grow t-small" style="color:var(--text-2)">Midtown Runners is 180 m away and open to capture.</div></div>
+    </div>
+  </div>
+  <div class="pad" style="padding-bottom:26px"><button class="btn btn-primary btn-block btn-lg" data-go="pre-activity">Continue</button></div>
+  ${homebar()}</div>`;
+
+M["pre-activity"] = ()=>`
+<div class="screen app">${statusbar()}
+  <div style="height:44%;position:relative;flex:none">
+    <div class="map">${mapSVG({view:VIEWS.own,labels:false,ghost:true,players:true})}</div>
+    <div style="position:absolute;inset:0;background:linear-gradient(to top,var(--void) 6%,transparent 58%);pointer-events:none"></div>
+  </div>
+  <button class="iconbtn round" data-go="activity-select" aria-label="Back" style="position:absolute;top:52px;left:16px;z-index:5">${ic("chevL",20)}</button>
+  <div class="grow stack" style="justify-content:flex-end;padding:0 20px 30px;z-index:2">
+    <div class="row gap2" style="margin-bottom:14px">
+      <span class="chip chip-prot"><i class="bead"></i>GPS ready</span>
+      <span class="chip"><i class="bead" style="background:var(--success)"></i>Accuracy 4 m</span>
+    </div>
+    <h1 class="t-display" style="margin:0 0 4px">${ACTKINDS.find(a=>a.k===S.actType).n}</h1>
+    <p class="t-small" style="margin:0 0 22px">Starting from Riverside Loop. Anything you enclose becomes territory.</p>
+    <div class="statgrid" style="margin-bottom:22px">
+      ${statcard("Distance","0.0","km")}${statcard("Estimated territory","—","")}
+    </div>
+    <button class="btn btn-primary btn-block" style="height:66px;border-radius:var(--r-xl);font-size:17px" data-act="run-start">
+      ${ic("play",22,2.2)}Start ${ACTKINDS.find(a=>a.k===S.actType).n.toLowerCase()}</button>
+    <button class="btn btn-ghost btn-block btn-sm" style="margin-top:10px" data-go="settings">Activity settings</button>
+  </div>${homebar()}</div>`;
+
+function fmtTime(s){const m=Math.floor(s/60),ss=Math.floor(s%60);return `${String(m).padStart(2,"0")}:${String(ss).padStart(2,"0")}`}
+function runData(t){
+  const km = 8.72*t, sec = 3138*t;
+  const pace = t>0.01 ? (sec/60)/km : 0;
+  const pm=Math.floor(pace), ps=Math.round((pace-pm)*60);
+  return {km:km.toFixed(2), time:fmtTime(sec), pace:t>0.01?`${pm}:${String(ps).padStart(2,"0")}`:"—:—", area:(3.42*t).toFixed(2)};
+}
+M.active = ()=>{
+  const t=S.run.t, d=runData(t), cp=capProgress(t), capOn=cp>0;
+  const capState = cp>=1?"CAPTURED":cp>=.75?"NEARLY COMPLETE":cp>0?"IN PROGRESS":"AVAILABLE";
+  return `<div class="screen app">${statusbar()}
+  <div class="map">${mapSVG({view:VIEWS.run,route:t,preview:true,players:true,hot:"midtown",
+    dim:["northgate","harbour","ashgrove","quarry","foundry"],labels:true,ping:capOn?null:"midtown"})}</div>
+  <div style="position:absolute;top:0;left:0;right:0;height:120px;background:linear-gradient(to bottom,rgba(6,8,10,.92),transparent);pointer-events:none"></div>
+  <div class="row gap2" style="position:absolute;top:52px;left:16px;right:16px;z-index:5">
+    <span class="chip chip-rec"><i class="bead" style="background:var(--primary);animation:pulse 1.6s infinite"></i>${ACTKINDS.find(a=>a.k===S.actType).n.toUpperCase()} · ${S.run.playing?"RECORDING":"PAUSED"}</span>
+    <div class="grow"></div>
+    <span class="chip chip-prot"><i class="bead"></i>GPS 4 m</span>
+  </div>
+  <div class="map-controls" style="top:104px"><button class="mc" aria-label="Centre on me" style="color:var(--t-you)">${ic("locate",18)}</button>
+    <button class="mc" data-act="legend" aria-label="Legend">${ic("layers",18)}</button></div>
+
+  <div class="hud">
+    ${capOn?`<div class="capbar" id="capbar">
+      <div class="row gap2" style="margin-bottom:9px">
+        <span class="chip chip-cap"><i class="bead"></i>${capState}</span>
+        <div class="grow"></div>
+        <span class="num" id="cap-pct" style="font-size:16px;color:var(--t-amber)">${Math.round(cp*100)}%</span>
+      </div>
+      <div class="t-h3" style="margin-bottom:8px">Midtown Runners</div>
+      <div class="bar amber" style="margin-bottom:8px"><i id="cap-bar" style="width:${(cp*100).toFixed(1)}%"></i></div>
+      <div class="row"><span class="t-cap grow" id="cap-km">${(8.42*cp).toFixed(1)} / 8.42 km² contested</span>
+        <span class="t-cap">Keep moving to capture</span></div>
+    </div>`:`<div class="row gap2" style="margin-bottom:14px">
+      <span class="chip chip-you"><i class="bead"></i>New territory +<span id="prev-area">${d.area}</span> km²</span></div>`}
+    <div class="hud-metrics">
+      <div class="m"><span class="t-label">Distance</span><span class="t-metric" id="m-km">${d.km}</span><span class="t-cap">km</span></div>
+      <div class="m"><span class="t-label">Time</span><span class="t-metric" id="m-time">${d.time}</span><span class="t-cap">min</span></div>
+      <div class="m"><span class="t-label">Pace</span><span class="t-metric" id="m-pace">${d.pace}</span><span class="t-cap">/km</span></div>
+    </div>
+    <div class="row gap3">
+      <button class="btn btn-secondary grow btn-lg" data-act="run-toggle">${S.run.playing?ic("pause",20,2.2):ic("play",20,2.2)}${S.run.playing?"Pause":"Resume"}</button>
+      <button class="btn ${cp>=1?"btn-primary":"btn-danger"} grow btn-lg" data-act="run-finish">${ic("flag",20,2)}Finish</button>
+    </div>
+  </div>${homebar()}</div>`;
+};
+
+M["capture-done"] = ()=>`
+<div class="screen app">${statusbar()}
+  <div style="height:48%;position:relative;flex:none">
+    <div class="map">${mapSVG({view:VIEWS.mid,recolor:{midtown:"you"},hot:"midtown",labels:true,me:false,players:false})}</div>
+    <div style="position:absolute;inset:0;background:linear-gradient(to top,var(--void) 4%,transparent 56%);pointer-events:none"></div>
+  </div>
+  <div class="grow scroll pad" style="padding-top:4px;padding-bottom:26px;z-index:2">
+    <div class="grow-in">
+      <span class="chip chip-cap" style="margin-bottom:12px"><i class="bead"></i>TERRITORY CAPTURED</span>
+      <h1 class="t-display" style="margin:8px 0 6px">Midtown Runners</h1>
+      <p class="t-small" style="margin:0 0 20px">Taken from @kiran_m after 3.8 km inside the border.</p>
+      <div class="statgrid" style="margin-bottom:14px">
+        ${statcard("Gained","+8.42","km²")}${statcard("New total","26.32","km²","+47%")}
+        ${statcard("XP earned","+420","xp")}${statcard("City rank","#2","","+2")}
+      </div>
+      <div class="card" style="margin-bottom:18px">
+        <div class="row" style="margin-bottom:9px"><span class="t-label grow">Level ${ME.level}</span><span class="t-cap">2,260 / 2,400 xp</span></div>
+        <div class="bar"><i style="width:94%"></i></div>
+        <div class="t-cap" style="margin-top:8px">140 xp to Level 12 — Cartographer</div>
+      </div>
+      <button class="btn btn-primary btn-block btn-lg" data-go="result">Continue</button>
+    </div>
+  </div>${homebar()}</div>`;
+
+M.result = ()=>`
+<div class="screen app">${statusbar()}
+  ${topbar("Activity complete",{back:"home"})}
+  <div class="scroll pad" style="padding-bottom:26px">
+    <div class="card" style="padding:18px;margin-bottom:14px">
+      <div class="row gap3" style="margin-bottom:16px">
+        <div class="iconbtn" style="background:var(--primary-wash);color:var(--primary);box-shadow:none">${ic("run",22)}</div>
+        <div class="grow"><div class="t-h3">Capture run</div><div class="t-cap">Today, 07:15 · Midtown</div></div>
+        <button class="iconbtn round" aria-label="Share activity">${ic("share",18)}</button>
+      </div>
+      <div class="hud-metrics" style="margin:0">
+        <div class="m"><span class="t-label">Distance</span><span class="t-metric">8.72</span><span class="t-cap">km</span></div>
+        <div class="m"><span class="t-label">Time</span><span class="t-metric">52:18</span><span class="t-cap">min</span></div>
+        <div class="m"><span class="t-label">Pace</span><span class="t-metric">6:00</span><span class="t-cap">/km</span></div>
+      </div>
+    </div>
+    <div class="card" style="padding:18px;margin-bottom:14px">
+      <div class="t-h3" style="margin-bottom:12px">Territory change</div>
+      <div class="row gap3" style="align-items:stretch">
+        <div class="grow stack" style="gap:7px">
+          <div class="t-label">Before</div>
+          <div class="minimap" style="height:104px">${mapSVG({view:VIEWS.mid,labels:false,me:false,players:false})}</div>
+          <div class="num" style="font-size:17px">17.90<span style="font-size:11px;color:var(--text-2)"> km²</span></div>
+        </div>
+        <div style="display:grid;place-items:center;color:var(--primary)">${ic("arrowR",20,2.2)}</div>
+        <div class="grow stack" style="gap:7px">
+          <div class="t-label" style="color:var(--primary)">After</div>
+          <div class="minimap" style="height:104px;box-shadow:0 0 0 1px rgba(185,255,60,.35)">${mapSVG({view:VIEWS.mid,recolor:{midtown:"you"},labels:false,me:false,players:false})}</div>
+          <div class="num" style="font-size:17px;color:var(--primary)">26.32<span style="font-size:11px;color:var(--text-2)"> km²</span></div>
+        </div>
+      </div>
+      <div class="row gap2" style="margin-top:14px">
+        <span class="chip chip-you"><i class="bead"></i>+8.42 km² gained</span>
+        <span class="chip chip-prot"><i class="bead"></i>+47% expanded</span>
+      </div>
+    </div>
+    <div class="stack" style="gap:9px">
+      <button class="btn btn-primary btn-block" data-go="territories">View territory</button>
+      <button class="btn btn-secondary btn-block" data-go="home">Done</button>
+    </div>
+  </div>${homebar()}</div>`;
+
+/* ---------- territory management ---------- */
+const TTABS=["All","Active","Protected","Under attack"];
+M.territories = ()=>{
+  const list=TERR.filter(t=>t.owner==="you");
+  const filtered = S.terrTab==="Under attack" ? list.filter(t=>t.state==="attacked")
+    : S.terrTab==="Protected" ? [] : list;
+  return `<div class="screen app">${statusbar()}
+  ${topbar("My territories",{right:`<button class="iconbtn round" aria-label="Sort">${ic("chart",19)}</button>`})}
+  <div class="pad" style="padding-bottom:14px"><div class="tabs">
+    ${TTABS.map(t=>`<button data-act="terrtab:${t}" aria-selected="${S.terrTab===t}">${t}</button>`).join("")}
+  </div></div>
+  <div class="scroll pad" style="padding-bottom:26px">
+    ${filtered.length===0?`<div class="empty">
+      <svg class="art" viewBox="0 0 120 120" fill="none" aria-hidden="true">
+        <polygon points="60,18 98,42 86,94 34,94 22,42" stroke="var(--line-2)" stroke-width="2" stroke-dasharray="6 6" stroke-linejoin="round"/>
+        <path d="M44 62h32M60 46v32" stroke="var(--line-2)" stroke-width="2" stroke-linecap="round"/></svg>
+      <div><div class="t-h2" style="margin-bottom:6px">Nothing protected yet</div>
+        <p class="t-small" style="margin:0;max-width:30ch">Hold a territory for seven days without losing it and it becomes protected.</p></div>
+      <button class="btn btn-secondary" data-act="terrtab:All">Show all territories</button></div>`:
+    `<div class="stack" style="gap:12px">${filtered.map(t=>`
+      <button class="card card-press" data-act="sheet-go:${t.id}" style="padding:12px">
+        <div class="row gap3">
+          <div class="minimap" style="width:82px;height:82px;flex:none;border-radius:var(--r-sm)">
+            ${mapSVG({view:fitView(t.pts),terr:[t.id],labels:false,me:false,players:false})}</div>
+          <div class="grow stack" style="gap:6px">
+            <div class="row"><div class="t-h3 grow">${t.name}</div>${ic("chevR",18)}</div>
+            <div class="hero-metric"><span class="num" style="font-size:21px">${t.area.toFixed(2)}</span><span class="u" style="font-size:12px">km²</span></div>
+            <div class="row gap2">${stateChip(t.state)}
+              ${t.week!=="new"?`<span class="delta ${t.week[0]==="-"?"down":""}">${t.week} this week</span>`:""}</div>
+          </div></div></button>`).join("")}
+      <div class="card card-flat row gap3" style="border-style:dashed">
+        <span style="color:var(--text-3)">${ic("info",18)}</span>
+        <div class="t-small grow">Territories shrink by 2% a week if you don't move through them.</div></div>
+    </div>`}
+  </div>${bnav("")}${homebar()}</div>`;
+};
+
+M.history = ()=>`
+<div class="screen app">${statusbar()}
+  ${topbar("Riverside Loop",{back:"territories"})}
+  <div class="scroll pad" style="padding-bottom:26px">
+    <div class="row gap2" style="margin-bottom:16px">${stateChip("own")}
+      <span class="chip"><i class="bead"></i>Created 42 days ago</span></div>
+    <div class="minimap" style="height:150px;margin-bottom:18px">${mapSVG({view:fitView(T("riverside").pts),hot:"riverside",labels:false,me:false,players:false})}</div>
+    <div class="statgrid" style="margin-bottom:22px">
+      ${statcard("Current","12.84","km²","+4.2%")}${statcard("Peak size","13.10","km²")}
+      ${statcard("Defended","3","attempts")}${statcard("Visits","28","runs")}</div>
+    <div class="t-h3" style="margin-bottom:14px">History</div>
+    <div class="timeline">${HISTORY.map(h=>`
+      <div class="tl-item ${h.hi?"hi":""}">
+        <div class="t-cap" style="margin-bottom:3px">${h.d}</div>
+        <div class="t-body" style="font-weight:600">${h.e}</div>
+        <div class="t-small">${h.s}</div></div>`).join("")}</div>
+  </div>${homebar()}</div>`;
+
+/* ---------- leaderboard ---------- */
+M.leaderboard = ()=>{
+  const scopes=["Nearby","City","Country","Global"], times=["Daily","Weekly","Monthly","Season","All time"],
+    cats=["Territory","Distance","Captures","Activities"];
+  const val=p=>S.lbCat==="Distance"?[p.dist.toFixed(0),"km"]:S.lbCat==="Captures"?[p.caps,""]:S.lbCat==="Activities"?[(p.caps*2+6),""]:[p.area.toFixed(1),"km²"];
+  const sorted=[...LEADERS].sort((a,b)=>+val(b)[0]-+val(a)[0]);
+  return `<div class="screen app">${statusbar()}
+  ${topbar("Leaderboard",{right:`<button class="iconbtn round" aria-label="Search players">${ic("search",19)}</button>`})}
+  <div class="pad stack" style="gap:8px;padding-bottom:12px">
+    <div class="tabs">${scopes.map(s=>`<button data-act="lb:scope:${s}" aria-selected="${S.lbScope===s}">${s}</button>`).join("")}</div>
+    <div class="tabs">${cats.map(s=>`<button data-act="lb:cat:${s}" aria-selected="${S.lbCat===s}">${s}</button>`).join("")}</div>
+  </div>
+  <div class="scroll pad" style="padding-bottom:26px">
+    <div class="row gap2" style="margin-bottom:12px">
+      ${times.map(t=>`<button class="btn btn-ghost btn-sm" data-act="lb:time:${t}" style="padding:0 8px;height:28px;${S.lbTime===t?"color:var(--primary)":""}">${t}</button>`).join("")}
+    </div>
+    <div class="stack" style="gap:2px">
+      ${sorted.map((p,i)=>{const [v,u]=val(p);return `
+      <button class="lb-row ${p.me?"me":""}" data-go="${p.me?"profile":"player"}" style="width:100%;text-align:left">
+        <span class="rank ${i<3?"top":""}">${i+1}</span>
+        ${av(p.i,p.hue,"sm")}
+        <div class="grow" style="min-width:0"><div class="t-body" style="font-weight:600">${p.n}${p.me?' <span class="t-cap">· you</span>':""}</div>
+          <div class="t-cap">${p.h}</div></div>
+        <div class="stack" style="align-items:flex-end;gap:1px">
+          <span class="num" style="font-size:16px">${v}</span><span class="t-cap">${u||S.lbCat.toLowerCase()}</span></div>
+      </button>`}).join("")}
+    </div>
+    <p class="t-cap" style="text-align:center;margin-top:18px">Ranked among ${S.lbScope==="Nearby"?"players within 10 km":"players in your "+S.lbScope.toLowerCase()} · updated hourly</p>
+  </div>${bnav("leaderboard")}${homebar()}</div>`;
+};
+
+/* ---------- profiles ---------- */
+function profileBody(p,mine){
+  return `<div class="scroll" style="padding-bottom:26px">
+    <div class="pad stack" style="gap:16px">
+      <div class="row gap4">
+        ${av(p.i,p.hue,"lg ring")}
+        <div class="grow"><div class="t-h1" style="font-size:22px">${p.n}</div>
+          <div class="t-small">${p.h}</div>
+          <div class="row gap2" style="margin-top:9px">
+            <span class="chip"><i class="bead" style="background:var(--primary)"></i>Level ${mine?ME.level:9}</span>
+            <span class="chip">${mine?ME.streak:4}-day streak</span></div></div>
+      </div>
+      ${mine?`<div class="card" style="padding:14px">
+        <div class="row" style="margin-bottom:9px"><span class="t-label grow">Level ${ME.level} — Surveyor</span>
+          <span class="t-cap">${ME.xp} / ${ME.xpNext} xp</span></div>
+        <div class="bar"><i style="width:${(ME.xp/ME.xpNext*100).toFixed(0)}%"></i></div></div>`:
+        `<div class="row gap2"><button class="btn btn-primary grow">Follow</button>
+         <button class="btn btn-secondary grow">Challenge</button></div>`}
+      <div class="statgrid">
+        ${statcard("Territory",mine?"17.90":"42.8","km²",mine?"+4.2%":"+2.1%")}
+        ${statcard("Distance",mine?"328":"412","km")}
+        ${statcard("Captures",mine?"7":"23","")}
+        ${statcard("Activities",mine?"46":"88","")}
+      </div>
+      <div><div class="t-h3" style="margin-bottom:10px">Territory map</div>
+        <div class="minimap" style="height:172px">${mapSVG({view:mine?VIEWS.city:VIEWS.mid,
+          dim:mine?["midtown","northgate","quarry","harbour","foundry","ashgrove"]:["riverside","signal","harbour","foundry"],
+          labels:false,players:false,me:mine})}</div></div>
+      <div><div class="row" style="margin-bottom:10px"><div class="t-h3 grow">Recent activity</div>
+          <button class="btn btn-ghost btn-sm" data-go="result">See all</button></div>
+        <div class="stack">${ACTS.slice(0,3).map(a=>`
+          <div class="rowitem"><div class="iconbtn" style="background:var(--surface-3);color:var(--text-2);box-shadow:none;width:38px;height:38px">${ic(a.type,19)}</div>
+            <div class="grow"><div class="t-body" style="font-weight:600">${a.ttl}</div><div class="t-cap">${a.when} · ${a.d} · ${a.t}</div></div>
+            <span class="chip chip-you" style="height:22px">${a.gain}</span></div>`).join("")}</div></div>
+      ${mine?`<div class="row gap2"><button class="btn btn-secondary grow" data-go="achievements">Achievements</button>
+        <button class="btn btn-secondary grow" data-go="settings">Settings</button></div>`:
+        `<div class="card card-flat row gap3"><span style="color:var(--text-3)">${ic("lock",18)}</span>
+          <div class="t-small grow">This player shares territory publicly but keeps exact routes private.</div></div>`}
+    </div></div>`;
+}
+M.profile = ()=>`<div class="screen app">${statusbar()}
+  ${topbar("Profile",{right:`<button class="iconbtn round" data-go="settings" aria-label="Settings">${ic("settings",19)}</button>`})}
+  ${profileBody({n:ME.name,h:ME.handle,i:ME.initials,hue:"you"},true)}${bnav("profile")}${homebar()}</div>`;
+M.player = ()=>`<div class="screen app">${statusbar()}
+  ${topbar("Player",{back:"leaderboard",right:`<button class="iconbtn round" aria-label="More">${ic("share",19)}</button>`})}
+  ${profileBody({n:"Kiran Mehta",h:"@kiran_m",i:"KM",hue:"rose"},false)}${homebar()}</div>`;
+
+/* ---------- notifications ---------- */
+const NICON={attack:["swords","--t-rose"],capture:["flag","--primary"],grow:["trend","--t-you"],ach:["medal","--t-amber"],defend:["shield","--success"]};
+M.notifications = ()=>`
+<div class="screen app">${statusbar()}
+  ${topbar("Notifications",{back:"home",right:`<button class="btn btn-ghost btn-sm">Mark all read</button>`})}
+  <div class="scroll pad" style="padding-bottom:26px">
+    <div class="stack" style="gap:8px">
+      ${NOTIFS.map(n=>{const [i,c]=NICON[n.t];return `
+      <button class="card card-press row gap3" data-go="${n.t==="attack"?"map":n.t==="ach"?"achievements":"territories"}"
+        style="align-items:flex-start;${n.unread?"border-color:var(--line-2)":"background:var(--surface);opacity:.82"}">
+        <div class="iconbtn" style="background:color-mix(in srgb,var(${c}) 14%,transparent);color:var(${c});box-shadow:none;flex:none">${ic(i,20)}</div>
+        <div class="grow" style="min-width:0">
+          <div class="row gap2"><div class="t-body grow" style="font-weight:600">${n.ttl}</div>
+            <span class="t-cap">${n.time}</span></div>
+          <div class="t-small" style="margin-top:2px">${n.body}</div></div>
+        ${n.unread?`<span style="width:7px;height:7px;border-radius:50%;background:var(--primary);flex:none;margin-top:7px"></span>`:""}
+      </button>`}).join("")}
+    </div>
+    <p class="t-cap" style="text-align:center;margin-top:20px">Older notifications are cleared after 30 days.</p>
+  </div>${homebar()}</div>`;
+
+M.achievements = ()=>`
+<div class="screen app">${statusbar()}
+  ${topbar("Achievements",{back:"profile"})}
+  <div class="scroll pad" style="padding-bottom:26px">
+    <div class="card" style="margin-bottom:16px">
+      <div class="row gap4">
+        <div class="ring-wrap" style="flex:none">
+          <svg width="66" height="66" viewBox="0 0 66 66"><circle cx="33" cy="33" r="28" fill="none" stroke="var(--surface-4)" stroke-width="6"/>
+            <circle cx="33" cy="33" r="28" fill="none" stroke="var(--primary)" stroke-width="6" stroke-linecap="round"
+              stroke-dasharray="${(2*Math.PI*28).toFixed(1)}" stroke-dashoffset="${(2*Math.PI*28*0.5).toFixed(1)}"/></svg>
+          <div class="ring-val"><span class="num" style="font-size:16px">3</span><div class="t-cap">of 6</div></div>
+        </div>
+        <div class="grow"><div class="t-h3">Halfway there</div>
+          <p class="t-small" style="margin:4px 0 0">Three more to unlock the Cartographer badge on your profile.</p></div>
+      </div>
+    </div>
+    <div class="stack" style="gap:10px">
+      ${ACHS.map(a=>`<div class="ach ${a.on?"":"locked"}">
+        <div class="medal">${ic(a.on?a.ic:"lock",22)}</div>
+        <div class="grow"><div class="t-h3">${a.n}</div>
+          <div class="t-small" style="margin-top:2px">${a.d}</div>
+          ${a.prog?`<div class="row gap3" style="margin-top:9px">
+            <div class="bar grow" style="height:6px"><i style="width:${(a.prog[0]/a.prog[1]*100).toFixed(0)}%"></i></div>
+            <span class="t-cap">${a.prog[0]} / ${a.prog[1]} ${a.unit}</span></div>`:""}</div>
+        ${a.on?`<span class="chip chip-prot" style="height:22px">Unlocked</span>`:""}
+      </div>`).join("")}
+    </div>
+  </div>${homebar()}</div>`;
+
+/* ---------- settings + privacy ---------- */
+const SETGROUPS=[
+ ["Account",[["user","Account","atul@example.com"],["shield","Security","Passkey enabled"]]],
+ ["Game",[["eye","Privacy","Territory public"],["bell","Notifications","6 of 9 on"],["map","Map","Dark · Satellite off"],["run","Activity tracking","Auto-pause on"]]],
+ ["App",[["ruler","Units","Kilometres"],["grid","Appearance","Dark"],["info","Help & support",""],["globe","About","v2.4.1"]]]
+];
+M.settings = ()=>`
+<div class="screen app">${statusbar()}
+  ${topbar("Settings",{back:"profile"})}
+  <div class="scroll pad" style="padding-bottom:26px">
+    ${SETGROUPS.map(([g,items])=>`
+      <div class="t-label" style="margin:18px 0 8px">${g}</div>
+      <div class="card" style="padding:4px 14px">
+        ${items.map(([i,n,v])=>`<button class="rowitem" data-go="${n==="Privacy"?"privacy":""}">
+          <span style="color:var(--text-3)">${ic(i,19)}</span>
+          <span class="grow t-body">${n}</span>
+          ${v?`<span class="t-cap">${v}</span>`:""}${ic("chevR",17)}</button>`).join("")}
+      </div>`).join("")}
+    <button class="btn btn-danger btn-block" style="margin-top:22px" data-go="login">${ic("logout",19)}Log out</button>
+    <p class="t-cap" style="text-align:center;margin-top:16px">Perimeter 2.4.1 · Made for outdoor use</p>
+  </div>${homebar()}</div>`;
+
+const PRIVACY=[
+ {k:"Profile visibility", v:"Public", o:[["Public","Anyone can open your profile"],["Friends","Only players you follow back"],["Private","Nobody but you"]]},
+ {k:"Territory visibility", v:"Public", o:[["Public","Your zones show your name on the map"],["Friends","Others see the zone, not your name"],["Private","Shown as unclaimed to everyone else"]]},
+ {k:"Activity visibility", v:"Friends", o:[["Public","Routes appear on your profile"],["Friends","Only followers see routes"],["Private","Routes never leave your phone"]]},
+ {k:"Live location", v:"Only during activity", o:[["Off","Never share your position"],["Friends","Followers see you while you move"],["Only during activity","Visible only while recording"]]}
+];
+M.privacy = ()=>`
+<div class="screen app">${statusbar()}
+  ${topbar("Privacy",{back:"settings"})}
+  <div class="scroll pad" style="padding-bottom:26px">
+    <div class="card card-flat row gap3" style="margin-bottom:18px;align-items:flex-start">
+      <span style="color:var(--primary);flex:none">${ic("shield",20)}</span>
+      <div class="t-small grow">Perimeter never shows your exact position to other players. Rivals only ever see a territory border and a rounded distance.</div>
+    </div>
+    ${PRIVACY.map((p,pi)=>`
+      <div class="t-label" style="margin:18px 0 8px">${p.k}</div>
+      <div class="card" style="padding:6px 14px">
+        ${p.o.map(([o,d])=>`<button class="rowitem" data-act="priv:${pi}:${o}" style="align-items:flex-start">
+          <span class="radio" role="radio" aria-checked="${p.v===o}" style="margin-top:2px"></span>
+          <span class="grow"><span class="t-body" style="display:block;font-weight:${p.v===o?"600":"400"}">${o}</span>
+            <span class="t-cap">${d}</span></span></button>`).join("")}
+      </div>`).join("")}
+    <div class="card" style="margin-top:20px">
+      <div class="row gap3"><div class="grow"><div class="t-body" style="font-weight:600">Hide start and end points</div>
+        <div class="t-cap" style="margin-top:2px">Trims 200 m from both ends of every route you share.</div></div>
+        <span class="switch" role="switch" aria-checked="true" data-act="sw"><i></i></span></div>
+    </div>
+  </div>${homebar()}</div>`;
+
+/* ---------- system states gallery ---------- */
+M["states-empty"] = ()=>`
+<div class="screen app">${statusbar()}
+  ${topbar("Empty & loading")}
+  <div class="scroll pad" style="padding-bottom:26px">
+    <div class="card" style="padding:0;overflow:hidden;margin-bottom:14px">
+      <div class="empty" style="padding:34px 24px">
+        <svg class="art" viewBox="0 0 120 120" fill="none" aria-hidden="true">
+          <polygon points="60,20 96,44 84,92 36,92 24,44" stroke="var(--line-2)" stroke-width="2" stroke-dasharray="7 7" stroke-linejoin="round"/>
+          <circle cx="60" cy="60" r="6" fill="var(--t-you)" opacity=".8"/>
+          <circle cx="60" cy="60" r="16" stroke="var(--t-you)" stroke-width="1.5" opacity=".35"/></svg>
+        <div><div class="t-h2" style="margin-bottom:6px">Your map is waiting</div>
+          <p class="t-small" style="margin:0;max-width:30ch">Start moving to claim your first territory. A single closed loop is enough.</p></div>
+        <button class="btn btn-primary" data-go="activity-select">Start your first run</button></div>
+    </div>
+    <div class="card" style="margin-bottom:14px"><div class="empty" style="padding:22px 12px">
+      <div class="t-h3">No activities yet</div><p class="t-small" style="margin:-6px 0 0">Your next adventure starts here.</p>
+      <button class="btn btn-secondary btn-sm">Browse activity types</button></div></div>
+    <div class="card" style="margin-bottom:14px"><div class="empty" style="padding:22px 12px">
+      <div class="t-h3">You're flying solo</div><p class="t-small" style="margin:-6px 0 0">No players within 10 km right now. Check back after work.</p></div></div>
+    <div class="card" style="margin-bottom:22px"><div class="empty" style="padding:22px 12px">
+      <span style="color:var(--success)">${ic("check",26,2.2)}</span>
+      <div class="t-h3" style="margin-top:-6px">You're all caught up</div></div></div>
+
+    <div class="t-label" style="margin-bottom:10px">Skeleton — leaderboard</div>
+    <div class="card" style="margin-bottom:14px">
+      ${[0,1,2].map(()=>`<div class="row gap3" style="padding:9px 0">
+        <div class="sk" style="width:22px;height:14px"></div><div class="sk" style="width:30px;height:30px;border-radius:50%"></div>
+        <div class="grow stack" style="gap:6px"><div class="sk" style="width:58%;height:11px"></div><div class="sk" style="width:34%;height:9px"></div></div>
+        <div class="sk" style="width:42px;height:16px"></div></div>`).join("")}
+    </div>
+    <div class="t-label" style="margin-bottom:10px">Skeleton — territory card</div>
+    <div class="card" style="padding:12px"><div class="row gap3">
+      <div class="sk" style="width:82px;height:82px"></div>
+      <div class="grow stack" style="gap:9px"><div class="sk" style="width:62%;height:13px"></div>
+        <div class="sk" style="width:40%;height:22px"></div><div class="sk" style="width:52%;height:11px"></div></div></div></div>
+    <button class="btn btn-secondary btn-block" style="margin-top:16px" data-act="mapmode-go:loading">See the map loading state</button>
+  </div>${homebar()}</div>`;
+
+M["states-error"] = ()=>`
+<div class="screen app">${statusbar()}
+  ${topbar("Errors & offline")}
+  <div class="scroll pad" style="padding-bottom:26px">
+    <div class="card" style="margin-bottom:12px;border-color:rgba(255,192,72,.35)">
+      <div class="row gap3" style="align-items:flex-start">
+        <span style="color:var(--warning);flex:none">${ic("alert",22)}</span>
+        <div class="grow"><div class="t-h3">GPS signal lost</div>
+          <p class="t-small" style="margin:5px 0 12px">Move to open sky and the recording will pick up where it stopped. Nothing has been lost.</p>
+          <div class="row gap2"><button class="btn btn-secondary btn-sm">Retry now</button>
+            <button class="btn btn-ghost btn-sm">Keep recording anyway</button></div></div></div>
+    </div>
+    <div class="card" style="margin-bottom:12px">
+      <div class="row gap3" style="align-items:flex-start">
+        <span style="color:var(--secondary);flex:none">${ic("refresh",22)}</span>
+        <div class="grow"><div class="t-h3">Sync paused</div>
+          <p class="t-small" style="margin:5px 0 12px">Your activity is stored on this phone and will upload when you're back online.</p>
+          <div class="bar you" style="height:5px"><i style="width:34%"></i></div></div></div>
+    </div>
+    <div class="card" style="margin-bottom:12px">
+      <div class="row gap3" style="align-items:flex-start">
+        <span style="color:var(--danger);flex:none">${ic("wifioff",22)}</span>
+        <div class="grow"><div class="t-h3">Map unavailable</div>
+          <p class="t-small" style="margin:5px 0 12px">Check your connection and try again. Tiles you've already visited still work offline.</p>
+          <button class="btn btn-secondary btn-sm">Try again</button></div></div>
+    </div>
+    <div class="t-label" style="margin:22px 0 10px">Offline indicator</div>
+    <div class="stack" style="gap:10px">
+      <div class="toast" style="position:static;animation:none"><span class="chip chip-off"><i class="bead"></i>Offline</span>
+        <div class="t-small grow">Activity saved on this device</div></div>
+      <div class="toast" style="position:static;animation:none"><span class="chip chip-sync"><i class="bead"></i>Syncing</span>
+        <div class="t-small grow">Uploading 1 activity…</div></div>
+      <div class="toast" style="position:static;animation:none"><span class="chip chip-prot"><i class="bead"></i>Synced</span>
+        <div class="t-small grow">Everything is up to date</div></div>
+    </div>
+    <div class="t-label" style="margin:22px 0 10px">Destructive confirmation</div>
+    <div class="card">
+      <div class="t-h3" style="margin-bottom:6px">Discard this activity?</div>
+      <p class="t-small" style="margin:0 0 16px">You've recorded 5.42 km. Discarding loses the route and any territory it would have created.</p>
+      <div class="row gap2"><button class="btn btn-secondary grow">Keep recording</button>
+        <button class="btn btn-danger grow">Discard</button></div>
+    </div>
+  </div>${homebar()}</div>`;
+
+/* ============================================================
+   DESKTOP APP
+   ============================================================ */
+const DNAV=[["dashboard","Dashboard","home"],["map","Live map","map"],["territories","Territories","grid"],
+  ["activities","Activities","run"],["leaderboard","Leaderboard","trophy"],["players","Players","user"],
+  ["profile","Profile","user"],["settings","Settings","settings"]];
+function deskShell(inner,title,actions){
+  return `<div class="browser"><div class="bchrome"><i></i><i></i><i></i>
+      <div class="burl">${ic("lock",12,2)}<span style="margin-left:7px">app.perimeter.gg/${S.desk}</span></div></div>
+    <div class="bbody app">
+      <aside class="dsb">
+        <div class="row gap2" style="padding:0 12px 20px">
+          <svg width="26" height="26" viewBox="0 0 30 30" fill="none" aria-hidden="true">
+            <path d="M15 2.6 26.4 10.2 22 24.6 8 24.6 3.6 10.2Z" stroke="rgba(255,255,255,.2)" stroke-width="1.6" stroke-linejoin="round"/>
+            <path d="M15 2.6 26.4 10.2 22 24.6" stroke="#B9FF3C" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="15" cy="15" r="3.4" fill="#2DE1FF"/></svg>
+          <b class="t-h3" style="letter-spacing:.14em">PERIMETER</b></div>
+        <nav class="stack" style="gap:2px" aria-label="Sections">
+          ${DNAV.slice(0,6).map(([k,l,i])=>`<button class="dsb-item" data-act="desk:${k}" ${S.desk===k?'aria-current="true"':""}>${ic(i,19)}${l}</button>`).join("")}
+        </nav>
+        <div style="height:1px;background:var(--line);margin:14px 12px"></div>
+        <nav class="stack" style="gap:2px" aria-label="Account">
+          ${DNAV.slice(6).map(([k,l,i])=>`<button class="dsb-item" data-act="desk:${k}" ${S.desk===k?'aria-current="true"':""}>${ic(i,19)}${l}</button>`).join("")}
+        </nav>
+        <div class="grow"></div>
+        <div class="card" style="padding:13px">
+          <div class="row" style="margin-bottom:8px"><span class="t-label grow">Level ${ME.level}</span><span class="t-cap">${ME.xp}/${ME.xpNext}</span></div>
+          <div class="bar" style="height:6px"><i style="width:77%"></i></div></div>
+        <button class="dsb-item" style="margin-top:10px">${av(ME.initials,"you","sm")}<span class="grow">${ME.name}</span>${ic("chevU",15)}</button>
+      </aside>
+      <main class="dmain">
+        <div class="dtop"><h1 class="t-h2 grow" style="margin:0">${title}</h1>${actions||""}</div>
+        ${inner}
+      </main></div></div>`;
+}
+function dtopActions(){
+  return `<div class="row gap2">
+    <div class="row gap2" style="height:38px;padding:0 12px;border-radius:var(--r-sm);background:var(--surface-2);box-shadow:inset 0 0 0 1px var(--line);color:var(--text-3);width:250px">
+      ${ic("search",16)}<span class="t-small">Search territories or players</span></div>
+    <button class="iconbtn" aria-label="Notifications" style="position:relative">${ic("bell",19)}<span class="badge" style="position:absolute;top:-3px;right:-3px">2</span></button>
+    <button class="btn btn-primary btn-sm" data-act="desk:map">${ic("plus",17,2.2)}Start activity</button></div>`;
+}
+const D={};
+D.dashboard = ()=>deskShell(`<div class="dbody">
+  <div class="dgrid" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px">
+    ${statcard("Total territory","17.90","km²","+4.2%")}${statcard("Weekly distance","38.6","km","+12%")}
+    ${statcard("Activities","14","","+3")}${statcard("Captures","7","","+1")}</div>
+  <div class="dgrid" style="grid-template-columns:1.62fr 1fr">
+    <div class="card" style="padding:0;overflow:hidden">
+      <div class="row" style="padding:14px 18px"><div class="t-h3 grow">Your map</div>
+        <div class="tabs"><button aria-selected="true">Territory</button><button>Routes</button><button>Heat</button></div></div>
+      <div style="height:392px;position:relative;background:var(--map-bg)">${mapSVG({view:VIEWS.city,players:true,px:700,alt:"Your territory across the city"})}
+        <div class="panel" style="left:16px;bottom:16px;padding:12px 14px">
+          <div class="t-label" style="margin-bottom:8px">Legend</div>
+          <div class="stack" style="gap:6px">
+            <div class="row gap2 t-cap"><span style="width:11px;height:11px;border-radius:3px;background:var(--t-you)"></span>Your territory</div>
+            <div class="row gap2 t-cap"><span style="width:11px;height:11px;border-radius:3px;background:var(--t-rose)"></span>Rivals</div>
+            <div class="row gap2 t-cap"><span style="width:11px;height:11px;border-radius:3px;background:var(--t-neutral)"></span>Unclaimed</div></div></div>
+      </div></div>
+    <div class="stack gap4">
+      <div class="card">
+        <div class="row" style="margin-bottom:14px"><div class="t-h3 grow">Territory growth</div><span class="t-cap">12 weeks</span></div>
+        <svg viewBox="0 0 320 110" style="width:100%;height:110px" aria-label="Territory growth chart, 8.1 to 17.9 square kilometres">
+          <defs><linearGradient id="g1" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#B9FF3C" stop-opacity=".35"/><stop offset="100%" stop-color="#B9FF3C" stop-opacity="0"/></linearGradient></defs>
+          ${[0,1,2,3].map(i=>`<line x1="0" y1="${14+i*28}" x2="320" y2="${14+i*28}" stroke="var(--line)"/>`).join("")}
+          <path d="M4 96 L32 92 L60 84 L88 86 L116 74 L144 66 L172 68 L200 54 L228 42 L256 44 L284 26 L312 14 L312 106 L4 106Z" fill="url(#g1)"/>
+          <path d="M4 96 L32 92 L60 84 L88 86 L116 74 L144 66 L172 68 L200 54 L228 42 L256 44 L284 26 L312 14"
+            fill="none" stroke="#B9FF3C" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="312" cy="14" r="4" fill="#B9FF3C"/></svg>
+        <div class="row" style="margin-top:8px"><span class="t-cap grow">8.10 km²</span><span class="t-cap">17.90 km²</span></div>
+      </div>
+      <div class="card">
+        <div class="row" style="margin-bottom:12px"><div class="t-h3 grow">City ranking</div>
+          <button class="btn btn-ghost btn-sm" data-act="desk:leaderboard">Full board</button></div>
+        <div class="stack" style="gap:2px">${LEADERS.slice(0,5).map((p,i)=>`
+          <div class="lb-row ${p.me?"me":""}" style="padding:8px 10px">
+            <span class="rank ${i<3?"top":""}">${i+1}</span>${av(p.i,p.hue,"sm")}
+            <span class="grow t-small" style="color:var(--text)">${p.n}</span>
+            <span class="num" style="font-size:14px">${p.area.toFixed(1)}</span></div>`).join("")}</div>
+      </div>
+    </div>
+  </div>
+  <div class="dgrid" style="grid-template-columns:1fr 1fr;margin-top:16px">
+    <div class="card"><div class="row" style="margin-bottom:10px"><div class="t-h3 grow">Recent activity</div>
+      <button class="btn btn-ghost btn-sm" data-act="desk:activities">All activities</button></div>
+      ${ACTS.slice(0,3).map(a=>`<div class="rowitem">
+        <div class="iconbtn" style="width:36px;height:36px;box-shadow:none;background:var(--surface-3)">${ic(a.type,18)}</div>
+        <div class="grow"><div class="t-small" style="color:var(--text);font-weight:600">${a.ttl}</div><div class="t-cap">${a.when}</div></div>
+        <span class="t-small">${a.d}</span><span class="chip chip-you" style="height:22px;margin-left:12px">${a.gain}</span></div>`).join("")}</div>
+    <div class="card"><div class="t-h3" style="margin-bottom:10px">Needs attention</div>
+      <div class="rowitem"><span style="color:var(--t-rose)">${ic("swords",19)}</span>
+        <div class="grow"><div class="t-small" style="color:var(--text);font-weight:600">Riverside Loop under attack</div>
+          <div class="t-cap">@kiran_m is 31% through a capture</div></div>
+        <button class="btn btn-secondary btn-sm" data-act="desk:map">Open map</button></div>
+      <div class="rowitem"><span style="color:var(--t-amber)">${ic("target",19)}</span>
+        <div class="grow"><div class="t-small" style="color:var(--text);font-weight:600">Midtown Runners is capturable</div>
+          <div class="t-cap">8.42 km² · 180 m from your border</div></div>
+        <button class="btn btn-secondary btn-sm" data-act="desk:map">Plan route</button></div>
+      <div class="rowitem"><span style="color:var(--text-3)">${ic("clock",19)}</span>
+        <div class="grow"><div class="t-small" style="color:var(--text);font-weight:600">Signal Hill decays in 3 days</div>
+          <div class="t-cap">Move through it to reset the timer</div></div>
+        <button class="btn btn-ghost btn-sm">Remind me</button></div></div>
+  </div>
+</div>`,"Dashboard",dtopActions());
+
+D.map = ()=>deskShell(`<div style="flex:1;position:relative;overflow:hidden">
+  <div class="map">${mapSVG({view:VIEWS.wide,players:true,hot:"midtown",px:1204,alt:"Full screen city map"})}</div>
+  <div class="panel" style="left:20px;top:20px;width:272px;padding:16px">
+    <div class="row gap2" style="margin-bottom:14px">${ic("search",17)}<input class="input" style="height:36px;font-size:13.5px" placeholder="Search territories, players"></div>
+    <div class="t-label" style="margin-bottom:9px">Filters</div>
+    <div class="stack" style="gap:9px">
+      ${[["Your territory",true],["Rival territory",true],["Unclaimed",true],["Capture opportunities",true],["Nearby players",true],["Activity routes",false]].map(([l,v])=>
+        `<div class="row gap3"><span class="t-small grow">${l}</span><span class="switch" role="switch" aria-checked="${v}" data-act="sw"><i></i></span></div>`).join("")}
+    </div>
+    <div style="height:1px;background:var(--line);margin:14px 0"></div>
+    <div class="t-label" style="margin-bottom:9px">Territories</div>
+    <div class="stack" style="gap:3px;max-height:172px;overflow-y:auto">
+      ${TERR.map(t=>`<button class="row gap2" style="padding:6px 7px;border-radius:8px;width:100%;text-align:left">
+        <span style="width:9px;height:9px;border-radius:3px;background:${HUES[t.hue]};flex:none"></span>
+        <span class="t-small grow" style="color:var(--text)">${t.name}</span>
+        <span class="t-cap">${t.area.toFixed(1)}</span></button>`).join("")}
+    </div></div>
+  <div class="panel" style="right:20px;top:20px;width:308px;padding:18px">
+    <div class="row gap3" style="margin-bottom:14px">
+      <span style="width:10px;height:42px;border-radius:5px;background:${HUES.rose};flex:none"></span>
+      <div class="grow"><div class="t-h2">Midtown Runners</div><div class="t-cap">@kiran_m · created 24 days ago</div></div></div>
+    <div class="row gap2" style="margin-bottom:14px">${stateChip("target")}<span class="chip">3 borders</span></div>
+    <div class="statgrid" style="margin-bottom:14px">${statcard("Territory","8.42","km²","+1.1%")}${statcard("Defended","5","attempts")}</div>
+    <div class="minimap" style="height:132px;margin-bottom:14px">${mapSVG({view:fitView(T("midtown").pts),hot:"midtown",labels:false,me:false,players:false})}</div>
+    <button class="btn btn-primary btn-block btn-sm" style="margin-bottom:8px">Plan a capture route</button>
+    <div class="row gap2"><button class="btn btn-secondary btn-sm grow" data-act="desk:players">View player</button>
+      <button class="btn btn-secondary btn-sm grow">History</button></div></div>
+  <div class="map-controls" style="right:344px;bottom:24px">
+    <button class="mc" aria-label="Zoom in">${ic("zin",18)}</button>
+    <button class="mc" aria-label="Zoom out">${ic("zout",18)}</button>
+    <button class="mc" aria-label="Compass">${ic("compass",18)}</button>
+    <button class="mc" aria-label="Centre on me" style="color:var(--t-you)">${ic("locate",18)}</button></div>
+  <div class="panel" style="left:20px;bottom:20px;padding:12px 15px">
+    <div class="row gap4">${[["--t-you","Yours"],["--t-rose","Rival"],["--t-neutral","Unclaimed"],["--primary","Route"],["--t-amber","Capture zone"]].map(([c,l])=>
+      `<div class="row gap2 t-cap"><span style="width:11px;height:11px;border-radius:3px;background:var(${c})"></span>${l}</div>`).join("")}</div></div>
+</div>`,"Live map",dtopActions());
+
+D.territories = ()=>deskShell(`<div class="dbody">
+  <div class="dgrid" style="grid-template-columns:1.1fr 1fr">
+    <div class="stack gap4">
+      ${TERR.filter(t=>t.owner==="you").map(t=>`<div class="card row gap4" style="padding:14px">
+        <div class="minimap" style="width:120px;height:120px;flex:none">${mapSVG({view:fitView(t.pts),terr:[t.id],labels:false,me:false,players:false})}</div>
+        <div class="grow stack" style="gap:8px">
+          <div class="row"><div class="t-h2 grow">${t.name}</div>${stateChip(t.state)}</div>
+          <div class="hero-metric"><span class="t-metric">${t.area.toFixed(2)}</span><span class="u">km²</span></div>
+          <div class="row gap3"><span class="t-cap">Created ${t.age}</span><span class="delta">${t.week} this week</span></div>
+          <div class="row gap2" style="margin-top:4px"><button class="btn btn-secondary btn-sm">History</button>
+            <button class="btn btn-secondary btn-sm">Rename</button><button class="btn btn-ghost btn-sm">Share</button></div>
+        </div></div>`).join("")}
+      <div class="card card-flat row gap3" style="border-style:dashed;padding:18px">
+        <span style="color:var(--text-3)">${ic("info",20)}</span>
+        <div class="t-small grow">Territories shrink 2% a week without a visit. Riverside Loop was last visited today.</div></div>
+    </div>
+    <div class="stack gap4">
+      <div class="card"><div class="t-h3" style="margin-bottom:14px">Riverside Loop history</div>
+        <div class="timeline">${HISTORY.map(h=>`<div class="tl-item ${h.hi?"hi":""}">
+          <div class="t-cap">${h.d}</div><div class="t-small" style="color:var(--text);font-weight:600">${h.e}</div>
+          <div class="t-cap">${h.s}</div></div>`).join("")}</div></div>
+      <div class="card"><div class="t-h3" style="margin-bottom:12px">Border pressure</div>
+        <div class="stack" style="gap:12px">
+          ${[["Harbour Line","ember",22],["Midtown Runners","rose",64],["Foundry Flats","neutral",8]].map(([n,h,v])=>`
+          <div><div class="row" style="margin-bottom:6px"><span class="t-small grow">${n}</span><span class="t-cap">${v}%</span></div>
+            <div class="bar" style="height:6px"><i style="width:${v}%;background:${HUES[h]}"></i></div></div>`).join("")}</div></div>
+    </div></div></div>`,"Territories",dtopActions());
+
+D.activities = ()=>deskShell(`<div class="dbody">
+  <div class="row gap2" style="margin-bottom:16px">
+    <div class="tabs">${["All","Runs","Walks","Rides"].map((t,i)=>`<button aria-selected="${i===0}">${t}</button>`).join("")}</div>
+    <div class="grow"></div><button class="btn btn-secondary btn-sm">${ic("cal",16)}This month</button></div>
+  <div class="card" style="padding:0;overflow:hidden">
+    <table class="tbl" style="color:var(--text)">
+      <thead><tr><th style="border-color:var(--line)">Activity</th><th style="border-color:var(--line)">Date</th>
+        <th style="border-color:var(--line)">Distance</th><th style="border-color:var(--line)">Time</th>
+        <th style="border-color:var(--line)">Pace</th><th style="border-color:var(--line)">Territory</th><th style="border-color:var(--line)"></th></tr></thead>
+      <tbody>${ACTS.concat(ACTS).map((a,i)=>`<tr>
+        <td style="border-color:var(--line)"><div class="row gap3"><span style="color:var(--text-2)">${ic(a.type,18)}</span>
+          <span style="font-weight:600">${a.ttl}</span></div></td>
+        <td style="border-color:var(--line);color:var(--text-2)">${a.when}</td>
+        <td style="border-color:var(--line)"><span class="num" style="font-size:13.5px">${a.d}</span></td>
+        <td style="border-color:var(--line)"><span class="num" style="font-size:13.5px">${a.t}</span></td>
+        <td style="border-color:var(--line);color:var(--text-2)">${a.p}</td>
+        <td style="border-color:var(--line)"><span class="chip chip-you" style="height:22px">${a.gain}</span></td>
+        <td style="border-color:var(--line);text-align:right"><button class="btn btn-ghost btn-sm">Open</button></td></tr>`).join("")}</tbody></table>
+  </div></div>`,"Activities",dtopActions());
+
+D.leaderboard = ()=>deskShell(`<div class="dbody">
+  <div class="row gap2" style="margin-bottom:16px">
+    <div class="tabs">${["Nearby","City","Country","Global"].map((t,i)=>`<button aria-selected="${i===1}">${t}</button>`).join("")}</div>
+    <div class="tabs">${["Territory","Distance","Captures","Activities"].map((t,i)=>`<button aria-selected="${i===0}">${t}</button>`).join("")}</div>
+    <div class="grow"></div>
+    <div class="tabs">${["Daily","Weekly","Monthly","Season"].map((t,i)=>`<button aria-selected="${i===1}">${t}</button>`).join("")}</div></div>
+  <div class="dgrid" style="grid-template-columns:1.5fr 1fr">
+    <div class="card" style="padding:10px">
+      <div class="stack" style="gap:2px">${LEADERS.map((p,i)=>`
+        <button class="lb-row ${p.me?"me":""}" style="width:100%;text-align:left" data-act="desk:players">
+          <span class="rank ${i<3?"top":""}">${i+1}</span>${av(p.i,p.hue,"sm")}
+          <div class="grow"><div class="t-small" style="color:var(--text);font-weight:600">${p.n}</div><div class="t-cap">${p.h}</div></div>
+          <div class="row gap4"><span class="t-cap">${p.dist} km</span><span class="t-cap">${p.caps} captures</span>
+            <span class="num" style="font-size:16px;width:64px;text-align:right">${p.area.toFixed(1)}<span style="font-size:11px;color:var(--text-2)"> km²</span></span></div>
+        </button>`).join("")}</div></div>
+    <div class="stack gap4">
+      <div class="card"><div class="t-h3" style="margin-bottom:12px">Territory split, your city</div>
+        <div class="bar-seg" style="height:14px;margin-bottom:14px">
+          ${[["rose",5],["ember",4],["violet",3],["you",2],["amber",2],["neutral",4]].flatMap(([h,n])=>
+            Array.from({length:n},()=>`<i style="background:${HUES[h]};opacity:.85"></i>`)).join("")}</div>
+        <div class="stack" style="gap:8px">${[["Kiran Mehta","rose","24%"],["Tomas Reyes","ember","21%"],["Meera Sen","violet","16%"],["You","you","11%"]].map(([n,h,v])=>
+          `<div class="row gap2"><span style="width:10px;height:10px;border-radius:3px;background:${HUES[h]}"></span>
+            <span class="t-small grow">${n}</span><span class="t-cap">${v}</span></div>`).join("")}</div></div>
+      <div class="card"><div class="t-h3" style="margin-bottom:6px">Your position</div>
+        <p class="t-small" style="margin:0 0 14px">You're 1.3 km² behind Devansh Rao. One capture would move you to 3rd.</p>
+        <button class="btn btn-primary btn-block btn-sm" data-act="desk:map">Find a capture route</button></div>
+    </div></div></div>`,"Leaderboard",dtopActions());
+
+D.players = ()=>deskShell(`<div class="dbody">
+  <div class="dgrid" style="grid-template-columns:1fr 1.3fr">
+    <div class="stack gap4">
+      <div class="card"><div class="row gap4" style="margin-bottom:18px">${av("KM","rose","lg")}
+        <div class="grow"><div class="t-h1" style="font-size:24px">Kiran Mehta</div><div class="t-small">@kiran_m · City rank #1</div>
+          <div class="row gap2" style="margin-top:10px"><span class="chip"><i class="bead" style="background:var(--primary)"></i>Level 18</span>
+            <span class="chip">31-day streak</span></div></div></div>
+        <div class="dgrid" style="grid-template-columns:1fr 1fr">${statcard("Territory","42.8","km²","+2.1%")}${statcard("Distance","412","km")}
+          ${statcard("Captures","23","")}${statcard("Activities","88","")}</div>
+        <div class="row gap2" style="margin-top:14px"><button class="btn btn-primary grow btn-sm">Follow</button>
+          <button class="btn btn-secondary grow btn-sm">Challenge</button></div></div>
+      <div class="card card-flat row gap3"><span style="color:var(--text-3)">${ic("lock",19)}</span>
+        <div class="t-small grow">Activity routes are visible to followers only. Exact start points are always hidden.</div></div>
+    </div>
+    <div class="card" style="padding:0;overflow:hidden">
+      <div class="row" style="padding:14px 18px"><div class="t-h3 grow">Territory held</div><span class="t-cap">3 zones</span></div>
+      <div style="height:420px">${mapSVG({view:VIEWS.mid,dim:["riverside","signal","harbour","foundry","ashgrove"],hot:"midtown",px:640,me:false,players:false})}</div>
+    </div></div></div>`,"Player profile",dtopActions());
+
+D.profile = D.players;
+D.settings = ()=>deskShell(`<div class="dbody">
+  <div class="dgrid" style="grid-template-columns:220px 1fr;max-width:940px">
+    <nav class="stack" style="gap:2px" aria-label="Settings sections">
+      ${["Account","Privacy","Notifications","Map","Activity tracking","Units","Appearance","Security","Help","About"].map((s,i)=>
+        `<button class="dsb-item" ${i===1?'aria-current="true"':""}>${s}</button>`).join("")}</nav>
+    <div class="stack gap4">
+      <div class="card"><div class="t-h2" style="margin-bottom:6px">Privacy</div>
+        <p class="t-small" style="margin:0 0 20px;max-width:58ch">Perimeter is a location game, so these four settings decide everything other players can learn about where you go.</p>
+        ${PRIVACY.map(p=>`<div style="padding:16px 0;border-top:1px solid var(--line)">
+          <div class="t-h3" style="margin-bottom:10px">${p.k}</div>
+          <div class="row gap2">${p.o.map(([o,d])=>`<button class="card card-press grow" style="padding:12px;${p.v===o?"border-color:var(--primary)":""}">
+            <div class="row gap2" style="margin-bottom:5px"><span class="radio" role="radio" aria-checked="${p.v===o}" style="width:17px;height:17px"></span>
+              <span class="t-small" style="color:var(--text);font-weight:600">${o}</span></div>
+            <div class="t-cap">${d}</div></button>`).join("")}</div></div>`).join("")}
+      </div>
+      <div class="card row gap3"><div class="grow"><div class="t-h3">Hide start and end points</div>
+        <div class="t-cap" style="margin-top:3px">Trims 200 m from both ends of every route you share.</div></div>
+        <span class="switch" role="switch" aria-checked="true" data-act="sw"><i></i></span></div>
+    </div></div></div>`,"Settings",dtopActions());
+
+/* ============================================================
+   DESIGN SYSTEM DOCUMENTATION
+   ============================================================ */
+const UICOLORS=[["Background","--void","#06080A","Base canvas behind everything"],
+ ["Surface","--surface","#0D1116","Sheets, nav bars, page panels"],
+ ["Surface elevated","--surface-2","#131A20","Cards resting on the background"],
+ ["Surface raised","--surface-3","#1C252D","Secondary buttons, chips"],
+ ["Border","--line","#212C34","Hairlines and card outlines"],
+ ["Primary","--primary","#B9FF3C","One accent: the action you should take next"],
+ ["Secondary","--secondary","#3BE0FF","Sync, info, non-action highlights"],
+ ["Success","--success","#3DD68C","Protected, synced, GPS locked"],
+ ["Warning","--warning","#FFC048","Capture in progress, degraded GPS"],
+ ["Danger","--danger","#FF5A5A","Recording, discard, log out"],
+ ["Text primary","--text","#F1F5F4","Headings, metrics"],
+ ["Text secondary","--text-2","#9FADB6","Body copy"],
+ ["Text muted","--text-3","#66757F","Captions, inactive nav"]];
+const TCOLORS=[["Territory — you","--t-you","#2DE1FF","0°"],["Territory — rose","--t-rose","#FF3D77","45°"],
+ ["Territory — amber","--t-amber","#FFB01F","90°"],["Territory — violet","--t-violet","#A16BFF","135°"],
+ ["Territory — ember","--t-ember","#FF6A3D","dots"],["Territory — neutral","--t-neutral","#6B7785","cross"]];
+const TYPESCALE=[["Display","t-display","Archivo 800 / wdth 118","40 / 41","Capture results, pre-activity titles"],
+ ["H1","t-h1","Archivo 700 / wdth 110","26 / 30","Screen titles"],
+ ["H2","t-h2","Archivo 700 / wdth 106","19 / 23","Section and card titles"],
+ ["H3","t-h3","Archivo 600 / wdth 104","15.5 / 20","Row titles"],
+ ["Body","t-body","Inter 400","14.5 / 22","Descriptions"],
+ ["Body small","t-small","Inter 400","13 / 20","Supporting copy"],
+ ["Caption","t-cap","Inter 400","11.5 / 16","Timestamps, units"],
+ ["Label","t-label","Inter 600 · 0.1em caps","11 / 15","Metric labels only"],
+ ["Metric","t-metric","Archivo 700 / wdth 120 · tnum","30 / 30","Every number that changes"]];
+const SYSNAV=[["foundations","Foundations"],["components","Components"],["states","States"],["motion","Motion"],["access","Accessibility"],["naming","Naming"]];
+
+const SYS={};
+SYS.foundations = ()=>`
+<section><h3>Colour</h3>
+<p class="lead">One accent carries every call to action. Territory hues live in a separate ramp so a button is never mistaken for a piece of land — the single most important rule in this system.</p>
+<div class="swatches">${UICOLORS.map(([n,v,h,d])=>`<div class="sw-card">
+  <div class="sw-chip" style="background:${h};color:${["--primary","--secondary","--success","--warning","--text"].includes(v)?"#0A1400":"#F1F5F4"}">${d.split(",")[0]}</div>
+  <div class="sw-meta"><b>${n}</b><code>${v} · ${h}</code></div></div>`).join("")}</div>
+<h3 style="margin-top:34px">Territory ramp</h3>
+<p class="lead">Six ownership hues, each paired with a fill pattern so ownership survives colour-vision deficiency and bright sunlight. Ownership is never colour alone.</p>
+<div class="swatches">${TCOLORS.map(([n,v,h,p])=>`<div class="sw-card">
+  <div class="sw-chip" style="background:${h};color:#07090B">${p}</div>
+  <div class="sw-meta"><b>${n}</b><code>${v} · ${h}</code></div></div>`).join("")}</div>
+</section>
+
+<section><h3>Typography</h3>
+<p class="lead">Archivo at a wide optical width for anything numeric or titular — it reads at arm's length on a moving phone. Inter handles sentences. Numbers use tabular figures so a ticking distance never shifts the layout.</p>
+<div class="demo" style="margin-bottom:18px">
+  <div class="t-display" style="margin-bottom:6px">8.72 km</div>
+  <div class="t-h1" style="margin-bottom:6px">Territory captured</div>
+  <div class="t-h2" style="margin-bottom:6px">Midtown Runners</div>
+  <div class="t-body muted" style="max-width:56ch">Spend enough distance inside a rival's border and the territory changes hands. Everything you enclose becomes yours.</div>
+</div>
+<table class="tbl"><thead><tr><th>Role</th><th>Class</th><th>Face</th><th>Size / line</th><th>Used for</th></tr></thead>
+<tbody>${TYPESCALE.map(r=>`<tr><td><b>${r[0]}</b></td><td><code>.${r[1]}</code></td><td>${r[2]}</td><td><code>${r[3]}</code></td><td>${r[4]}</td></tr>`).join("")}</tbody></table>
+</section>
+
+<section><h3>Spacing, radius, elevation</h3>
+<p class="lead">An 8px rhythm with a 4px half-step. Radius encodes importance: the more interactive and the more it floats, the rounder it gets.</p>
+<div class="demo" style="margin-bottom:18px">
+  <div class="row gap4" style="flex-wrap:wrap;align-items:flex-end;margin-bottom:26px">
+    ${[4,8,12,16,24,32,40,48,64].map(n=>`<div class="stack" style="gap:7px;align-items:center">
+      <div style="width:${n}px;height:${n}px;background:var(--primary);border-radius:2px"></div><span class="t-cap">${n}</span></div>`).join("")}
+  </div>
+  <div class="row gap4" style="flex-wrap:wrap">
+    ${[["xs",6,"Chips"],["sm",10,"Small buttons"],["md",14,"Inputs, buttons"],["lg",20,"Cards"],["xl",28,"Sheets, hero cards"],["full",999,"Pills"]].map(([k,v,u])=>
+      `<div class="stack" style="gap:7px;align-items:center"><div style="width:62px;height:44px;background:var(--surface-3);border:1px solid var(--line-2);border-radius:${v}px"></div>
+      <span class="t-cap">${k} · ${v===999?"999":v}</span><span class="t-cap faint">${u}</span></div>`).join("")}
+  </div>
+  <div class="row gap4" style="flex-wrap:wrap;margin-top:26px">
+    ${[["e1","var(--e1)","Resting rows"],["e2","var(--e2)","Toasts, floating controls"],["e3","var(--e3)","Modals"],["e-sheet","var(--e-sheet)","Bottom sheets"]].map(([k,v,u])=>
+      `<div class="stack" style="gap:7px;align-items:center"><div style="width:96px;height:52px;background:var(--surface-2);border-radius:14px;box-shadow:${v}"></div>
+      <span class="t-cap">${k}</span><span class="t-cap faint">${u}</span></div>`).join("")}
+  </div>
+</div>
+<p class="note">Breakpoints: 390 mobile · 768 tablet · 1440 desktop · 1920 large. Layouts change structure at each one — the desktop map gains floating panels instead of a bottom sheet, and the tablet keeps the bottom sheet but moves navigation to a rail.</p>
+</section>`;
+
+SYS.components = ()=>`
+<section><h3>Buttons</h3>
+<p class="lead">Five kinds, one job each. Primary appears once per screen and always names what happens: "Start capture", not "Submit".</p>
+<div class="demo"><div class="demo-grid">
+  ${[["Primary","btn-primary",""],["Secondary","btn-secondary",""],["Ghost","btn-ghost",""],["Danger","btn-danger",""]].map(([n,c])=>
+    `<div class="stack" style="gap:10px"><span class="t-label">${n}</span>
+      <button class="btn ${c}">Start capture</button>
+      <button class="btn ${c}" disabled>Disabled</button>
+      <button class="btn ${c} btn-loading">Loading</button></div>`).join("")}
+  <div class="stack" style="gap:10px"><span class="t-label">Sizes</span>
+    <button class="btn btn-primary btn-lg">Large · 58</button>
+    <button class="btn btn-primary">Default · 50</button>
+    <button class="btn btn-primary btn-sm">Small · 38</button></div>
+  <div class="stack" style="gap:10px"><span class="t-label">Icon &amp; floating</span>
+    <div class="row gap3"><button class="iconbtn">${ic("bell",19)}</button><button class="iconbtn round">${ic("locate",19)}</button>
+      <button class="mc">${ic("layers",18)}</button>
+      <span class="fab" style="width:52px;height:52px;border-radius:18px;background:var(--primary);color:var(--primary-ink);display:grid;place-items:center">${ic("plus",24,2.2)}</span></div></div>
+</div></div></section>
+
+<section><h3>Status and progress</h3>
+<p class="lead">Nine live states drive almost every screen. Each pairs a colour with a word, so none of them depend on hue alone.</p>
+<div class="demo">
+  <div class="row gap2" style="flex-wrap:wrap;margin-bottom:24px">
+    <span class="chip chip-live"><i class="bead"></i>LIVE</span><span class="chip chip-rec"><i class="bead"></i>RECORDING</span>
+    <span class="chip"><i class="bead"></i>PAUSED</span><span class="chip chip-cap"><i class="bead"></i>CAPTURING</span>
+    <span class="chip chip-attack"><i class="bead"></i>UNDER ATTACK</span><span class="chip chip-you"><i class="bead"></i>CAPTURED</span>
+    <span class="chip chip-prot"><i class="bead"></i>PROTECTED</span><span class="chip chip-off"><i class="bead"></i>OFFLINE</span>
+    <span class="chip chip-sync"><i class="bead"></i>SYNCING</span>
+  </div>
+  <div class="demo-grid">
+    <div class="stack" style="gap:10px"><span class="t-label">Capture progress</span>
+      <div class="bar amber"><i style="width:78%"></i></div><span class="t-cap">6.2 / 8.0 km² contested</span></div>
+    <div class="stack" style="gap:10px"><span class="t-label">XP progress</span>
+      <div class="bar"><i style="width:77%"></i></div><span class="t-cap">1,840 / 2,400 xp</span></div>
+    <div class="stack" style="gap:10px"><span class="t-label">Segmented</span>
+      <div class="bar-seg"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i><i></i></div>
+      <span class="t-cap">4 of 7 borders held</span></div>
+    <div class="stack" style="gap:10px;align-items:flex-start"><span class="t-label">Circular</span>
+      <div class="ring-wrap"><svg width="72" height="72" viewBox="0 0 72 72">
+        <circle cx="36" cy="36" r="31" fill="none" stroke="var(--surface-4)" stroke-width="6"/>
+        <circle cx="36" cy="36" r="31" fill="none" stroke="var(--t-amber)" stroke-width="6" stroke-linecap="round"
+          stroke-dasharray="${(2*Math.PI*31).toFixed(1)}" stroke-dashoffset="${(2*Math.PI*31*0.22).toFixed(1)}"/></svg>
+        <div class="ring-val"><span class="num" style="font-size:17px">78%</span></div></div></div>
+  </div></div></section>
+
+<section><h3>Cards and rows</h3>
+<p class="lead">Eight card types share one container and differ only in what they lead with — a metric, a map thumbnail, or a person.</p>
+<div class="demo"><div class="demo-grid" style="grid-template-columns:repeat(auto-fill,minmax(268px,1fr))">
+  <div><span class="t-label">Statistic</span><div style="height:10px"></div>${statcard("Distance","38.6","km","+12%")}</div>
+  <div><span class="t-label">Territory</span><div style="height:10px"></div>
+    <div class="card" style="padding:12px"><div class="row gap3">
+      <div class="minimap" style="width:62px;height:62px;flex:none;border-radius:10px">${mapSVG({view:fitView(T("riverside").pts),terr:["riverside"],labels:false,me:false,players:false})}</div>
+      <div class="grow stack" style="gap:5px"><div class="t-h3">Riverside Loop</div>
+        <div class="hero-metric"><span class="num" style="font-size:18px">12.84</span><span class="u" style="font-size:11px">km²</span></div>
+        ${stateChip("own")}</div></div></div></div>
+  <div><span class="t-label">Player</span><div style="height:10px"></div>
+    <div class="card row gap3">${av("KM","rose")}<div class="grow"><div class="t-h3">Kiran Mehta</div><div class="t-cap">@kiran_m · 420 m away</div></div>
+      <button class="btn btn-secondary btn-sm">Follow</button></div></div>
+  <div><span class="t-label">Leaderboard row</span><div style="height:10px"></div>
+    <div class="card" style="padding:6px"><div class="lb-row me"><span class="rank top">4</span>${av("AT","you","sm")}
+      <div class="grow"><div class="t-small" style="color:var(--text);font-weight:600">Atul</div><div class="t-cap">@atul_runner</div></div>
+      <span class="num" style="font-size:15px">17.9</span></div></div></div>
+  <div><span class="t-label">Achievement</span><div style="height:10px"></div>
+    <div class="ach"><div class="medal">${ic("swords",22)}</div><div class="grow"><div class="t-h3">Conqueror</div>
+      <div class="t-small">Capture your first territory.</div></div></div></div>
+  <div><span class="t-label">Notification</span><div style="height:10px"></div>
+    <div class="card row gap3" style="align-items:flex-start">
+      <div class="iconbtn" style="background:rgba(255,61,119,.14);color:var(--t-rose);box-shadow:none;flex:none">${ic("swords",20)}</div>
+      <div class="grow"><div class="t-body" style="font-weight:600">Riverside Loop is under attack</div>
+        <div class="t-small">@kiran_m crossed your southern border.</div></div></div></div>
+</div></div></section>
+
+<section><h3>Inputs, tabs and navigation</h3>
+<div class="demo"><div class="demo-grid">
+  <div class="stack" style="gap:12px"><span class="t-label">Text field</span>
+    <div class="field"><label>Email</label><input class="input" value="atul@example.com"></div>
+    <div class="field"><label>Territory name</label><input class="input" placeholder="Name this zone"></div></div>
+  <div class="stack" style="gap:12px"><span class="t-label">Switch &amp; radio</span>
+    <div class="row gap3"><span class="t-small grow">Hide start points</span><span class="switch" role="switch" aria-checked="true" data-act="sw"><i></i></span></div>
+    <div class="row gap3"><span class="t-small grow">Auto-pause</span><span class="switch" role="switch" aria-checked="false" data-act="sw"><i></i></span></div>
+    <div class="row gap3"><span class="radio" role="radio" aria-checked="true"></span><span class="t-small">Public</span>
+      <span class="radio" role="radio" aria-checked="false"></span><span class="t-small">Private</span></div></div>
+  <div class="stack" style="gap:12px"><span class="t-label">Tabs</span>
+    <div class="tabs"><button aria-selected="true">All</button><button>Active</button><button>Protected</button></div>
+    <span class="t-label">Map controls</span>
+    <div class="row gap2"><button class="mc">${ic("zin",18)}</button><button class="mc">${ic("zout",18)}</button>
+      <button class="mc">${ic("compass",18)}</button><button class="mc" aria-pressed="true">${ic("locate",18)}</button></div></div>
+</div>
+<div style="margin-top:24px"><span class="t-label">Bottom navigation</span>
+  <div style="max-width:390px;margin-top:10px;border:1px solid var(--line);border-radius:16px;overflow:hidden">${bnav("map")}</div></div>
+</div></section>`;
+
+SYS.states = ()=>`
+<section><h3>Interaction states</h3>
+<p class="lead">Every interactive component answers the same ten questions. Focus is never removed — it is a visible lime ring, because the desktop app is fully keyboard-navigable.</p>
+<table class="tbl"><thead><tr><th>State</th><th>Treatment</th><th>Notes</th></tr></thead><tbody>
+${[["Default","Token colour at rest","—"],["Hover","Surface steps up one level","Pointer devices only"],
+ ["Pressed","<code>scale(.975)</code> for 180ms","Confirms touch on a moving phone"],
+ ["Focused","2px lime ring, 2px offset","Never suppressed"],
+ ["Disabled","38% opacity, no shadow, pointer-events off","Always paired with a reason in nearby copy"],
+ ["Loading","Label hidden, 19px spinner, width preserved","No layout shift"],
+ ["Error","Danger border plus message below","Message says what to do next"],
+ ["Empty","Illustration, one sentence, one action","An invitation, not an apology"],
+ ["Active","Primary fill or lime text","One per navigation group"],
+ ["Selected","Lime border plus filled radio","Used by activity type and privacy"]].map(r=>
+ `<tr><td><b>${r[0]}</b></td><td>${r[1]}</td><td>${r[2]}</td></tr>`).join("")}</tbody></table>
+</section>
+<section><h3>Map states</h3>
+<p class="lead">Ownership is read at a glance from fill, border and pattern together. These seven cover every polygon the map can draw.</p>
+<div class="demo"><div class="demo-grid" style="grid-template-columns:repeat(auto-fill,minmax(210px,1fr))">
+${[["Own","riverside","own"],["Opponent","midtown","rival"],["Neutral","foundry","neutral"],["Under attack","quarry","attacked"],
+  ["Capturing","midtown","target"],["Captured","signal","own-new"],["Protected","ashgrove","protected"]].map(([n,id,st])=>`
+  <div class="stack" style="gap:9px">
+    <div class="minimap" style="height:128px">${mapSVG({view:fitView(T(id).pts),terr:[id],hot:st==="target"?id:null,attack:st==="attacked"?id:null,labels:false,me:false,players:false,ping:st==="target"?id:null,recolor:st==="own-new"?{}:null})}</div>
+    <div class="row gap2"><span class="t-small" style="color:var(--text)">${n}</span><div class="grow"></div>${stateChip(st)}</div></div>`).join("")}
+</div></div></section>
+<section><h3>Capture lifecycle</h3>
+<p class="lead">Six states, one progress bar. The wording changes before the colour does, so a runner glancing down reads a word rather than decoding a hue.</p>
+<div class="demo"><div class="stack gap3">
+${[["LOCKED","You are outside the border","0","chip-off"],["AVAILABLE","Enter the territory to begin","0","chip-cap"],
+  ["IN PROGRESS","Keep moving to capture","42","chip-cap"],["NEARLY COMPLETE","1.8 km² left","87","chip-cap"],
+  ["CAPTURED","Midtown Runners is yours","100","chip-you"],["FAILED","You left before 50% — no change","31","chip-off"]].map(([s,d,v,c])=>`
+  <div class="card" style="padding:13px"><div class="row gap2" style="margin-bottom:9px">
+    <span class="chip ${c}"><i class="bead"></i>${s}</span><div class="grow"></div><span class="num" style="font-size:14px">${v}%</span></div>
+    <div class="bar ${s==="CAPTURED"?"you":"amber"}" style="margin-bottom:7px"><i style="width:${v}%"></i></div>
+    <span class="t-cap">${d}</span></div>`).join("")}
+</div></div></section>`;
+
+SYS.motion = ()=>`
+<section><h3>Motion</h3>
+<p class="lead">Motion answers an action or shows a change of ownership. Nothing moves for decoration — this interface is used outdoors, at speed, by someone who should be looking at the pavement.</p>
+<table class="tbl"><thead><tr><th>Band</th><th>Duration</th><th>Curve</th><th>Applies to</th></tr></thead><tbody>
+<tr><td><b>Micro</b></td><td><code>150–250ms</code></td><td><code>cubic-bezier(.2,.8,.2,1)</code></td><td>Press, toggle, chip change, progress tick</td></tr>
+<tr><td><b>Transition</b></td><td><code>250–400ms</code></td><td><code>cubic-bezier(.16,1,.3,1)</code></td><td>Bottom sheets, modals, screen changes, toasts</td></tr>
+<tr><td><b>Territory</b></td><td><code>500–900ms</code></td><td><code>cubic-bezier(.16,1,.3,1)</code></td><td>Polygon expansion, ownership change, capture completion</td></tr>
+</tbody></table>
+<div class="demo" style="margin-top:20px"><div class="demo-grid">
+  <div class="stack" style="gap:12px"><span class="t-label">Start activity</span>
+    <div class="row gap2"><span class="chip">START</span>${ic("arrowR",16)}<span class="chip chip-prot"><i class="bead"></i>GPS READY</span>${ic("arrowR",16)}<span class="chip chip-rec"><i class="bead"></i>RECORDING</span></div>
+    <span class="t-cap">Three steps, one button. The label is the state.</span></div>
+  <div class="stack" style="gap:12px"><span class="t-label">Territory capture</span>
+    <button class="btn btn-secondary btn-sm" data-act="demo-capture" style="align-self:flex-start">Play the ownership change</button>
+    <div class="minimap" style="height:124px" id="capdemo">${mapSVG({view:fitView(T("midtown").pts),terr:["midtown"],labels:false,me:false,players:false})}</div></div>
+  <div class="stack" style="gap:12px"><span class="t-label">Capture progress</span>
+    <button class="btn btn-secondary btn-sm" data-act="demo-bar" style="align-self:flex-start">Advance progress</button>
+    <div class="bar amber"><i id="demobar" style="width:12%"></i></div>
+    <span class="t-cap">The bar eases; the number snaps. Numbers must never look approximate.</span></div>
+</div></div>
+<p class="note" style="margin-top:20px">Every animation above is gated behind <code>prefers-reduced-motion</code> and the in-app motion switch. With motion off, the territory still changes colour — it simply changes instantly.</p>
+</section>`;
+
+SYS.access = ()=>`
+<section><h3>Accessibility</h3>
+<p class="lead">Two constraints shape this product more than any style choice: it is used in daylight, and it is used while moving.</p>
+<div class="demo"><div class="demo-grid" style="grid-template-columns:repeat(auto-fill,minmax(260px,1fr))">
+  <div class="stack" style="gap:8px"><span class="t-label">Contrast</span>
+    <div class="t-small">Measured against the surface they sit on: body copy 7.6:1, captions 5.5:1, primary buttons 15.7:1. The lime primary always carries near-black text, never white.</div>
+    <div class="row gap2"><span class="btn btn-primary btn-sm">15.7:1</span><span class="btn btn-secondary btn-sm">14.1:1</span></div></div>
+  <div class="stack" style="gap:8px"><span class="t-label">Touch targets</span>
+    <div class="t-small">Minimum 44×44. During an activity the pause and finish controls grow to 58px because they are pressed with a thumb, mid-stride.</div></div>
+  <div class="stack" style="gap:8px"><span class="t-label">Never colour alone</span>
+    <div class="t-small">Ownership carries a hue, a label, a border style and a fill pattern. Turn on the colour-blind switch at the top of this page to see the patterns appear on every map.</div></div>
+  <div class="stack" style="gap:8px"><span class="t-label">Screen readers</span>
+    <div class="t-small">Every map is an <code>img</code> with a written summary; controls carry explicit labels ("Centre on my location") rather than icon names.</div></div>
+  <div class="stack" style="gap:8px"><span class="t-label">Keyboard</span>
+    <div class="t-small">The desktop app is fully tabbable, with a visible lime focus ring and a skip link into the map panel.</div></div>
+  <div class="stack" style="gap:8px"><span class="t-label">Reduced motion</span>
+    <div class="t-small">Honoured at the system level and as an in-app setting. Nothing that conveys information is animation-only.</div></div>
+</div></div>
+<h3 style="margin-top:34px">Outdoor safety</h3>
+<p class="lead">The recording screen is deliberately the least interactive screen in the product.</p>
+<div class="demo"><ul class="stack gap3" style="margin:0;padding-left:18px;color:var(--text-2);font-size:14px;line-height:1.6">
+  <li>Three metrics, nothing else. Everything secondary waits until the activity ends.</li>
+  <li>Pause and finish are 58px, side by side, reachable one-handed.</li>
+  <li>No notifications interrupt a recording — they queue and appear on the summary.</li>
+  <li>Capture progress updates silently; there is no reason to look at the phone to keep capturing.</li>
+  <li>Territory animations are suppressed while recording and replayed on the results screen.</li>
+</ul></div></section>`;
+
+SYS.naming = ()=>`
+<section><h3>Component naming</h3>
+<p class="lead">One name per concept, used in the design file, the tokens and the code. If a component needs a qualifier to be understood, it is probably two components.</p>
+<table class="tbl"><thead><tr><th>Component</th><th>Variants</th><th>Where it appears</th></tr></thead><tbody>
+${[["Button","primary · secondary · ghost · danger · sm/lg","Everywhere; one primary per screen"],
+["IconButton","square · round · map control","Headers, map overlays"],
+["StatCard","with delta · without","Home, profile, sheets, dashboard"],
+["ActivityCard","run · walk · ride","Home, profile, activity list"],
+["TerritoryCard","own · rival · neutral","My territories, search results"],
+["PlayerCard","compact · full","Nearby, player search"],
+["LeaderboardRow","default · me","Leaderboard, dashboard"],
+["MapControl","zoom · compass · locate · layers","Live map, desktop map"],
+["MapLegend","collapsed · expanded","Live map, desktop map"],
+["BottomSheet","territory · player · confirm","Map interactions"],
+["CaptureProgress","locked · available · in progress · nearly · captured · failed","Recording screen, sheets"],
+["ActivityMetric","distance · time · pace · area","Recording HUD, summary"],
+["NotificationItem","attack · capture · growth · achievement · defence","Notifications"],
+["AchievementCard","locked · unlocked · in progress","Achievements"],
+["Avatar","sm · default · lg · ring","Everywhere"],
+["StatusIndicator","live · recording · paused · capturing · under attack · captured · protected · offline · syncing","Everywhere"]].map(r=>
+`<tr><td><code>${r[0]}</code></td><td>${r[1]}</td><td>${r[2]}</td></tr>`).join("")}</tbody></table>
+<h3 style="margin-top:34px">The loop this interface has to teach</h3>
+<div class="demo"><div class="row gap3" style="flex-wrap:wrap;align-items:center">
+${["Move","Create","Expand","Discover","Compete","Capture","Own more"].map((s,i,a)=>
+`<span class="chip" style="height:34px;padding:0 14px;font-size:13px;${i===a.length-1?"background:var(--primary-wash);color:var(--primary)":""}">${s}</span>${i<a.length-1?`<span style="color:var(--text-3)">${ic("arrowR",15)}</span>`:""}`).join("")}
+</div><p class="t-small" style="margin:16px 0 0;max-width:62ch">A first-time player should read this loop off the map alone: their own colour, someone else's colour, and a dotted line showing where the two meet.</p></div>
+</section>`;
+
+/* ============================================================
+   ROUTER + INTERACTION
+   ============================================================ */
+const FLOW=[
+ ["Launch",[["splash","Splash"],["onboarding","Onboarding"],["login","Sign in"],["register","Create account"]]],
+ ["Play",[["home","Home"],["map","Live map"],["activity-select","Start activity"],["pre-activity","Get ready"],
+   ["active","Recording & capture"],["capture-done","Territory captured"],["result","Activity summary"]]],
+ ["Territory",[["territories","My territories"],["history","Territory history"]]],
+ ["Social",[["leaderboard","Leaderboard"],["profile","Your profile"],["player","Player profile"],
+   ["notifications","Notifications"],["achievements","Achievements"]]],
+ ["System",[["settings","Settings"],["privacy","Privacy"],["states-empty","Empty & loading"],["states-error","Errors & offline"]]]
+];
+const ORDER=FLOW.flatMap(g=>g[1].map(s=>s[0]));
+const NOTES={
+ splash:["Splash","A route line closes into a polygon — the whole game in one gesture. Tap anywhere to continue."],
+ onboarding:["Onboarding","Four screens, each showing the real map rather than an illustration of one."],
+ login:["Sign in","Deliberately plain. Authentication is not where a territory game earns attention."],
+ register:["Create account","Username is collected here because it is what rivals see printed on the map."],
+ home:["Home","Territory is the headline metric; starting an activity is one tap from the top of the screen."],
+ map:["Live map","The identity screen. Switch between the five map states with the pills at the top, and tap the card to open the territory sheet."],
+ "activity-select":["Start activity","Three large targets. Selection is a whole card, not a radio dot."],
+ "pre-activity":["Get ready","GPS status is shown but never blocks the start button."],
+ active:["Recording & capture","Press play to run the simulated route. The territory preview grows behind you, and the capture panel appears when you cross into Midtown Runners."],
+ "capture-done":["Territory captured","The reward screen. Colour change first, numbers second, confetti never."],
+ result:["Activity summary","Before and after maps make the territory change legible without reading a number."],
+ territories:["My territories","Tabs include an empty state worth designing — try 'Protected'."],
+ history:["Territory history","A plain timeline. Territory gain is the only thing emphasised."],
+ leaderboard:["Leaderboard","Three filter dimensions kept visually quiet so the rows stay scannable."],
+ profile:["Your profile","Your map, your numbers, your progression — in that order."],
+ player:["Player profile","The same layout with privacy limits applied and social actions added."],
+ notifications:["Notifications","Five notification types, each with its own icon treatment and destination."],
+ achievements:["Achievements","Locked states show progress, so a locked badge is still useful."],
+ settings:["Settings","Deliberately short. Privacy gets its own screen."],
+ privacy:["Privacy","Each option explains what other players would actually see."],
+ "states-empty":["Empty & loading","Empty screens are invitations. Skeletons match the shape of the content they replace."],
+ "states-error":["Errors & offline","Errors say what happened and what to do. None of them mention a server."]
+};
+const DNOTES={dashboard:["Dashboard","Map plus analytics — the desktop's reason to exist."],
+ map:["Live map","Floating panels instead of a bottom sheet; the map never gets covered."],
+ territories:["Territories","Management and history side by side."],
+ activities:["Activities","A dense table, because desktop is where people audit their history."],
+ leaderboard:["Leaderboard","Adds a city-wide ownership split the phone has no room for."],
+ players:["Player profile","Privacy rules carry across surfaces unchanged."],
+ profile:["Player profile","Privacy rules carry across surfaces unchanged."],
+ settings:["Settings","Privacy options become cards with room to explain themselves."]};
+
+const $=s=>document.querySelector(s);
+const side=$("#side"), stage=$("#stage"), work=$("#work");
+
+function renderSide(){
+  if(S.surface==="mobile"){
+    side.innerHTML=FLOW.map(([g,items])=>`<div class="nav-h">${g}</div><ul class="navlist">${items.map(([id,l])=>
+      `<li><button data-nav="${id}" ${S.screen===id?'aria-current="true"':""}><span class="dot"></span>${l}</button></li>`).join("")}</ul>`).join("");
+  } else if(S.surface==="desktop"){
+    side.innerHTML=`<div class="nav-h">Desktop views</div><ul class="navlist">${DNAV.filter((d,i)=>i!==6).map(([k,l])=>
+      `<li><button data-dnav="${k}" ${S.desk===k?'aria-current="true"':""}><span class="dot"></span>${l}</button></li>`).join("")}</ul>`;
+  } else {
+    side.innerHTML=`<div class="nav-h">Design system</div><ul class="navlist">${SYSNAV.map(([k,l])=>
+      `<li><button data-snav="${k}" ${S.sys===k?'aria-current="true"':""}><span class="dot"></span>${l}</button></li>`).join("")}</ul>`;
+  }
+}
+function renderStage(){
+  work.classList.toggle("wide",false);
+  if(S.surface==="mobile"){
+    const i=ORDER.indexOf(S.screen), n=NOTES[S.screen]||[S.screen,""];
+    stage.innerHTML=`<div class="stage-head">
+      <div><h2>${n[0]}</h2><p>${n[1]}</p></div>
+      <div class="spacer"></div>
+      <div class="stepper">
+        <button data-step="-1" aria-label="Previous screen">${ic("chevL",17)}</button>
+        <span>${i+1} / ${ORDER.length}</span>
+        <button data-step="1" aria-label="Next screen">${ic("chevR",17)}</button></div>
+    </div>
+    <div class="devwrap"><div class="device" id="dev">${(M[S.screen]||M.home)()}</div></div>`;
+    fitDevice();
+    if(S.screen==="active") wireRun();
+  } else if(S.surface==="desktop"){
+    const n=DNOTES[S.desk]||[S.desk,""];
+    stage.innerHTML=`<div class="stage-head"><div><h2>${n[0]}</h2><p>${n[1]} · 1440 × 900</p></div></div>
+      <div style="width:100%;overflow:hidden" id="deskwrap">${(D[S.desk]||D.dashboard)()}</div>`;
+    fitBrowser();
+  } else {
+    stage.innerHTML=`<div class="stage-head"><div><h2>${SYSNAV.find(s=>s[0]===S.sys)[1]}</h2>
+      <p>Tokens and components are defined once and reused across mobile, tablet and desktop.</p></div></div>
+      <div class="ds">${SYS[S.sys]()}</div>`;
+  }
+}
+function render(){renderSide();renderStage()}
+function go(id){
+  if(id===S.screen && id!=="active") return;
+  stopRun(); S.sheet=null;
+  S.screen=id; render(); }
+function fitDevice(){
+  const dev=$("#dev"); if(!dev) return;
+  const availW=stage.clientWidth, availH=window.innerHeight-190;
+  const narrow=window.innerWidth<760;
+  const sc=narrow?Math.min(1,(availW-8)/390):Math.min(1,(availW-8)/390,Math.max(.5,availH/844));
+  dev.style.transform=`scale(${sc})`;
+  dev.parentElement.style.height=(844*sc+16)+"px";
+}
+function fitBrowser(){
+  const w=$("#deskwrap"); if(!w) return;
+  const br=w.querySelector(".browser"); if(!br) return;
+  const sc=Math.min(1,w.clientWidth/1440);
+  br.style.transform=`scale(${sc})`; w.style.height=(900*sc+8)+"px";
+}
+window.addEventListener("resize",()=>{fitDevice();fitBrowser()});
+
+/* ---------- run simulation ---------- */
+let runRefs=null, lastCap=false;
+function wireRun(){
+  const d=$("#dev"); if(!d) return;
+  runRefs={route:d.querySelector(".route"),prev:d.querySelector(".route-prev"),me:d.querySelector(".me-marker"),
+    km:d.querySelector("#m-km"),time:d.querySelector("#m-time"),pace:d.querySelector("#m-pace"),
+    capBar:d.querySelector("#cap-bar"),capPct:d.querySelector("#cap-pct"),capKm:d.querySelector("#cap-km"),
+    prevArea:d.querySelector("#prev-area")};
+  lastCap=capProgress(S.run.t)>0;
+  if(S.run.playing) tickStart();
+}
+function paintRun(){
+  if(!runRefs) return;
+  const t=S.run.t, pts=routeUpTo(t), d=runData(t), cp=capProgress(t);
+  if(runRefs.route) runRefs.route.setAttribute("d","M"+ptsAttr(pts).replace(/ /g," L"));
+  if(runRefs.prev&&pts.length>3) runRefs.prev.setAttribute("points",ptsAttr(pts));
+  const p=pts[pts.length-1];
+  if(runRefs.me) runRefs.me.setAttribute("transform",`translate(${p[0].toFixed(1)},${p[1].toFixed(1)})`);
+  if(runRefs.km) runRefs.km.textContent=d.km;
+  if(runRefs.time) runRefs.time.textContent=d.time;
+  if(runRefs.pace) runRefs.pace.textContent=d.pace;
+  if(runRefs.prevArea) runRefs.prevArea.textContent=d.area;
+  if(runRefs.capBar){runRefs.capBar.style.width=(cp*100).toFixed(1)+"%";
+    runRefs.capPct.textContent=Math.round(cp*100)+"%";
+    runRefs.capKm.textContent=(8.42*cp).toFixed(1)+" / 8.42 km² contested";}
+  if((cp>0)!==lastCap || (cp>=1&&!S.run.done)){ if(cp>=1) S.run.done=true; lastCap=cp>0; renderStage(); }
+}
+function tickStart(){
+  if(S.run.raf) cancelAnimationFrame(S.run.raf);
+  let last=performance.now();
+  const step=now=>{
+    if(!S.run.playing){S.run.raf=null;return}
+    const dt=(now-last)/1000; last=now;
+    S.run.t=Math.min(1,S.run.t+dt/26);
+    if(S.run.t>=1){S.run.playing=false;S.run.raf=null;paintRun();renderStage();return}
+    /* schedule before painting: paintRun may re-render and restart the loop */
+    S.run.raf=requestAnimationFrame(step);
+    paintRun();
+  };
+  S.run.raf=requestAnimationFrame(step);
+}
+function stopRun(){if(S.run.raf){cancelAnimationFrame(S.run.raf);S.run.raf=null}S.run.playing=false}
+
+/* ---------- events ---------- */
+document.addEventListener("click",e=>{
+  const nav=e.target.closest("[data-nav]"); if(nav){go(nav.dataset.nav);return}
+  const dn=e.target.closest("[data-dnav]"); if(dn){S.desk=dn.dataset.dnav;render();return}
+  const sn=e.target.closest("[data-snav]"); if(sn){S.sys=sn.dataset.snav;render();window.scrollTo({top:0,behavior:"smooth"});return}
+  const st=e.target.closest("[data-step]");
+  if(st){const i=ORDER.indexOf(S.screen)+ +st.dataset.step;go(ORDER[(i+ORDER.length)%ORDER.length]);return}
+  const surf=e.target.closest("[data-surface]");
+  if(surf){S.surface=surf.dataset.surface;stopRun();
+    document.querySelectorAll("[data-surface]").forEach(b=>b.setAttribute("aria-selected",b===surf));render();return}
+
+  const act=e.target.closest("[data-act]");
+  if(act){
+    const [k,a,b]=act.dataset.act.split(":");
+    switch(k){
+      case "onb-next": if(S.onb<ONB.length-1){S.onb++;renderStage()}else{S.onb=0;go("login")} return;
+      case "onb-prev": S.onb=Math.max(0,S.onb-1);renderStage();return;
+      case "auth-submit": S.busy=true;renderStage();setTimeout(()=>{S.busy=false;go("home")},700);return;
+      case "mapmode": S.mapMode=a;S.sheet=null;renderStage();return;
+      case "mapmode-go": S.mapMode=a;go("map");return;
+      case "map-attack": S.mapMode="own";go("map");return;
+      case "sheet": S.sheet=(a==="close"?null:a);renderStage();return;
+      case "sheet-go": S.mapMode="own";S.screen="map";S.sheet=a;render();return;
+      case "pick": S.actType=a;renderStage();return;
+      case "terrtab": S.terrTab=a;renderStage();return;
+      case "lb": if(a==="scope")S.lbScope=b; if(a==="cat")S.lbCat=b; if(a==="time")S.lbTime=b; renderStage();return;
+      case "legend": S.legend=!S.legend;renderStage();return;
+      case "run-start": S.run={t:0,playing:true,elapsed:0,raf:null,done:false};go("active");return;
+      case "run-toggle": S.run.playing=!S.run.playing; renderStage(); return;
+      case "run-finish": stopRun(); go(capProgress(S.run.t)>=1?"capture-done":"result"); return;
+      case "priv": PRIVACY[+a].v=b; renderStage(); return;
+      case "desk": S.desk=a; render(); return;
+      case "sw": {const on=act.getAttribute("aria-checked")==="true";act.setAttribute("aria-checked",!on);return}
+      case "demo-capture": {
+        const box=$("#capdemo"); if(!box) return;
+        box.innerHTML=mapSVG({view:fitView(T("midtown").pts),terr:["midtown"],recolor:{midtown:"you"},hot:"midtown",labels:false,me:false,players:false});
+        box.firstElementChild.style.animation="growIn var(--d-major) var(--ease-out) both";
+        setTimeout(()=>{box.innerHTML=mapSVG({view:fitView(T("midtown").pts),terr:["midtown"],labels:false,me:false,players:false})},2200);
+        return}
+      case "demo-bar": {const b2=$("#demobar");if(b2)b2.style.width=Math.min(100,parseFloat(b2.style.width||"12")+22)+"%";return}
+    }
+  }
+  const g=e.target.closest("[data-go]");
+  if(g && g.dataset.go && S.surface==="mobile") go(g.dataset.go);
+});
+
+$("#tg-motion").addEventListener("click",function(){
+  const on=this.getAttribute("aria-pressed")==="true";
+  this.setAttribute("aria-pressed",!on); document.body.dataset.motion=!on?"on":"off";
+});
+$("#tg-cvd").addEventListener("click",function(){
+  const on=this.getAttribute("aria-pressed")==="true";
+  this.setAttribute("aria-pressed",!on); document.body.dataset.cvd=!on?"true":"false";
+});
+document.addEventListener("keydown",e=>{
+  if(S.surface!=="mobile"||e.target.matches("input,textarea")) return;
+  if(e.key==="ArrowRight"){const i=ORDER.indexOf(S.screen)+1;go(ORDER[i%ORDER.length])}
+  if(e.key==="ArrowLeft"){const i=ORDER.indexOf(S.screen)-1;go(ORDER[(i+ORDER.length)%ORDER.length])}
+});
+
+render();
+</script>
+</body>
+</html>
